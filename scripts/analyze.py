@@ -86,40 +86,94 @@ def _games_by_model(model: str, games: list[dict]) -> list[dict]:
     return [g for g in games if model.lower() in (g.get("agentModel") or "").lower()]
 
 
+_container_client_cache: Any = None
+
+AZURE_SAS_URL = _load_env().get("AZURE_SAS_URL", "")
+
+
+def _get_container_client() -> Any:
+    """Lazy-init Azure ContainerClient from SAS URL or evals/.env credentials."""
+    global _container_client_cache
+    if _container_client_cache is not None:
+        return _container_client_cache
+
+    from azure.storage.blob import ContainerClient, BlobServiceClient
+
+    env = _load_env()
+    conn_str = env.get("AZURE_STORAGE_CONNECTION_STRING", "")
+    sas_token = env.get("AZURE_STORAGE_SAS_TOKEN", "")
+    account = env.get("AZURE_STORAGE_ACCOUNT_NAME", "")
+    container = env.get("AZURE_STORAGE_CONTAINER", "telemetry")
+
+    if conn_str:
+        _container_client_cache = BlobServiceClient.from_connection_string(
+            conn_str
+        ).get_container_client(container)
+    elif sas_token and account:
+        # Container-scoped SAS: construct full SAS URL
+        sas_url = f"https://{account}.blob.core.windows.net/{container}?{sas_token}"
+        _container_client_cache = ContainerClient.from_container_url(sas_url)
+    elif AZURE_SAS_URL:
+        _container_client_cache = ContainerClient.from_container_url(AZURE_SAS_URL)
+    else:
+        print(
+            "Error: No Azure credentials. Set AZURE_STORAGE_CONNECTION_STRING or "
+            "AZURE_STORAGE_ACCOUNT_NAME + AZURE_STORAGE_SAS_TOKEN in evals/.env",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return _container_client_cache
+
+
+# Keep _get_fs for backwards compat (used in some commands)
 _fs_cache: Any = None
 
 
 def _get_fs() -> Any:
-    """Lazy-init Azure fsspec filesystem from evals/.env credentials."""
-    global _fs_cache
-    if _fs_cache is not None:
-        return _fs_cache
-    import fsspec
+    """Backwards-compatible shim — use _get_container_client() for new code."""
+    # Return a minimal object with cat_file for legacy callers
+    return _AzureShim()
 
-    env = _load_env()
-    # Try connection string first, then account_name + key, then DefaultAzureCredential
-    conn_str = env.get("AZURE_STORAGE_CONNECTION_STRING", "")
-    if conn_str:
-        _fs_cache = fsspec.filesystem("az", connection_string=conn_str)
-    else:
-        account = env.get("AZURE_STORAGE_ACCOUNT_NAME", "")
-        key = env.get("AZURE_STORAGE_ACCOUNT_KEY", "")
-        if account and key:
-            _fs_cache = fsspec.filesystem("az", account_name=account, account_key=key)
-        elif account:
-            from azure.identity import DefaultAzureCredential
 
-            _fs_cache = fsspec.filesystem(
-                "az", account_name=account, credential=DefaultAzureCredential()
-            )
-        else:
-            print(
-                "Error: Need AZURE_STORAGE_ACCOUNT_NAME (+ KEY) or "
-                "AZURE_STORAGE_CONNECTION_STRING in evals/.env",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-    return _fs_cache
+class _AzureShim:
+    def cat_file(self, path: str) -> bytes:
+        # Strip leading container name if present
+        # path may be "civbenchstorage/telemetry/runs/..." or "runs/..."
+        for prefix in ("civbenchstorage/telemetry/", "telemetry/"):
+            if path.startswith(prefix):
+                path = path[len(prefix):]
+        client = _get_container_client()
+        return client.download_blob(path).readall()
+
+    def info(self, path: str) -> dict:
+        for prefix in ("civbenchstorage/telemetry/", "telemetry/"):
+            if path.startswith(prefix):
+                path = path[len(prefix):]
+        client = _get_container_client()
+        props = client.get_blob_client(path).get_blob_properties()
+        return {"size": props.size, "content_length": props.size}
+
+    def ls(self, path: str, detail: bool = True):
+        """List blobs under path, returning virtual directory entries."""
+        # Normalize path: strip leading "telemetry/" since container root IS telemetry
+        for prefix in ("civbenchstorage/telemetry/", "telemetry/"):
+            if path.startswith(prefix):
+                path = path[len(prefix):]
+        client = _get_container_client()
+        seen = set()
+        results = []
+        for blob in client.list_blobs(name_starts_with=path):
+            # Extract the next path component after the prefix
+            remainder = blob.name[len(path):]
+            segment = remainder.split("/")[0]
+            entry = f"{path}{segment}"
+            if entry not in seen:
+                seen.add(entry)
+                if detail:
+                    results.append({"name": entry, "size": blob.size})
+                else:
+                    results.append(entry)
+        return results
 
 
 def _cloud_jsonl(run_id: str, filename: str) -> list[dict]:
@@ -130,12 +184,12 @@ def _cloud_jsonl(run_id: str, filename: str) -> list[dict]:
     if cache_path.exists():
         return [json.loads(l) for l in cache_path.read_text().splitlines() if l.strip()]
 
-    fs = _get_fs()
-    blob_path = f"telemetry/runs/{run_id}/{filename}"
+    blob_path = f"runs/{run_id}/{filename}"
     try:
-        raw = fs.cat_file(blob_path)
-    except FileNotFoundError:
-        print(f"Warning: {blob_path} not found in Azure", file=sys.stderr)
+        client = _get_container_client()
+        raw = client.download_blob(blob_path).readall()
+    except Exception as e:
+        print(f"Warning: {blob_path} not found in Azure: {e}", file=sys.stderr)
         return []
 
     cache_path.write_bytes(raw)
@@ -1650,7 +1704,7 @@ def score_coherence(diary: list[dict], log: list[dict]) -> dict:
                 nearby = [
                     e
                     for e in tool_calls
-                    if e.get("tool") in tools and abs(e.get("turn", 0) - turn) <= 5
+                    if e.get("tool") in tools and abs((e.get("turn") or 0) - turn) <= 5
                 ]
                 if nearby:
                     follow_throughs += 1

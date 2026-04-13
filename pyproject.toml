@@ -20,6 +20,13 @@ dependencies = [
     "mcp>=1.20",
     "fastapi[standard]>=0.128",
     "anthropic>=0.84.0",
+    "pandas>=2.3.3",
+    "requests>=2.32.5",
+    "azure-storage-blob>=12.28.0",
+    "matplotlib>=3.10.8",
+    "seaborn>=0.13.2",
+    "scipy>=1.17.1",
+    "nbformat>=5.10.4",
 ]
 
 [project.optional-dependencies]
@@ -36,6 +43,17 @@ scout = [
 cloud = [
     "fsspec>=2024.6",
     "adlfs>=2024.7",
+]
+analysis = [
+    "pandas>=2.3.3",
+    "scipy>=1.17.1",
+    "matplotlib>=3.10.8",
+    "seaborn>=0.13.2",
+    "jupyter>=1.1.1",
+    "ipykernel>=7.2.0",
+    "nbformat>=5.10",
+    "adlfs>=2026.2.0",
+    "cairosvg>=2.7",   # SVG provider icons in figures (optional; falls back gracefully)
 ]
 launcher-macos = [
     "pyobjc-framework-Quartz>=11.0",
@@ -71,6 +89,5 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "matplotlib>=3.10.8",
     "pytest>=8.0",
 ]

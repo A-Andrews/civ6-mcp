@@ -30,6 +30,10 @@ evals/.env
 
 # Paper (LaTeX source, figures, build artifacts — kept locally)
 docs/paper/
+analysis/figures
+analysis/rag_cache
+analysis/rag_auto_results.csv
+analysis/experiments.md
 
 # Save files
 /saves/
