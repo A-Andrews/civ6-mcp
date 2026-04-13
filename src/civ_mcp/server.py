@@ -20,6 +20,7 @@ import uvicorn
 from mcp.server.fastmcp import Context, FastMCP
 
 from civ_mcp import game_launcher, heartbeat
+from civ_mcp.game_over_watchdog import GameOverWatchdog
 from civ_mcp import narrate as nr
 from civ_mcp.connection import GameConnection, LuaError
 from civ_mcp.diary import (
@@ -54,6 +55,7 @@ class AppContext:
     popup_watcher: PopupWatcher
     spatial: SpatialTracker
     map_capture: MapCapture
+    watchdog: GameOverWatchdog
 
 
 async def _auto_boot(conn: GameConnection, save_name: str) -> None:
@@ -323,8 +325,10 @@ async def lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     # Spectator-mode background services (camera tracking + popup auto-dismiss)
     camera = CameraController(conn)
     popup_watcher = PopupWatcher(conn)
+    watchdog = GameOverWatchdog(gs, logger)
     camera.start()
     popup_watcher.start()
+    watchdog.start()
 
     # Start the web dashboard API as a background task (port 8000)
     web_app = create_app(gs)
@@ -341,9 +345,11 @@ async def lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
             popup_watcher=popup_watcher,
             spatial=spatial,
             map_capture=map_capture,
+            watchdog=watchdog,
         )
     finally:
         await emitter.close()
+        await watchdog.stop()
         await camera.stop()
         await popup_watcher.stop()
         uvi_server.should_exit = True
@@ -376,6 +382,10 @@ def _get_spatial(ctx: Context) -> SpatialTracker:
 
 def _get_map_capture(ctx: Context) -> MapCapture:
     return ctx.request_context.lifespan_context.map_capture
+
+
+def _get_watchdog(ctx: Context) -> GameOverWatchdog:
+    return ctx.request_context.lifespan_context.watchdog
 
 
 def _param_summary(params: dict[str, Any]) -> str:
@@ -2143,6 +2153,7 @@ async def end_turn(
         try:
             hang_check = await gs.check_game_over()
             if hang_check is not None:
+                gs._last_game_over = hang_check
                 vtype = (
                     hang_check.victory_type.replace("VICTORY_", "")
                     .replace("_", " ")
@@ -2165,8 +2176,11 @@ async def end_turn(
     if "GAME OVER" in result:
         heartbeat.write("finished", turn=_diary_turn or 0)
         try:
-            gameover = await gs.check_game_over()
+            gameover = gs._last_game_over
+            if gameover is None:
+                gameover = await gs.check_game_over()
             if gameover is not None:
+                gs._last_game_over = None
                 vtype = (
                     gameover.victory_type.replace("VICTORY_", "")
                     .replace("_", " ")
@@ -2179,8 +2193,18 @@ async def end_turn(
                     victory_type=vtype,
                     player_alive=gameover.player_alive,
                 )
+            else:
+                log.error(
+                    "GAME OVER detected but no GameOverStatus available "
+                    "— outcome will be missing from log"
+                )
         except Exception:
             log.warning("Failed to log game-over entry", exc_info=True)
+
+    # Arm the watchdog after first successful end_turn so it starts
+    # polling for game-over independently of future tool calls.
+    if "GAME OVER" not in result:
+        _get_watchdog(ctx).arm()
 
     return result
 
@@ -2312,7 +2336,12 @@ async def get_district_advisor(ctx: Context, city_id: int, district_type: str) -
         result = await gs.get_district_advisor(city_id, district_type)
         if isinstance(result, str):
             return f"Error: {result}"  # propagate specific error reason
-        return nr.narrate_district_advisor(result, district_type)
+        narrated = nr.narrate_district_advisor(result, district_type)
+        if gs._advisor_budget_warning:
+            warn = gs._advisor_budget_warning
+            gs._advisor_budget_warning = None
+            return f"!! {warn}\n\n{narrated}"
+        return narrated
 
     return await _logged(
         ctx,
@@ -2340,7 +2369,14 @@ async def get_wonder_advisor(ctx: Context, city_id: int, wonder_name: str) -> st
 
     async def _run():
         placements = await gs.get_wonder_advisor(city_id, wonder_name)
-        return nr.narrate_wonder_advisor(placements, wonder_name)
+        if isinstance(placements, str):
+            return f"Error: {placements}"  # propagate budget/error string
+        narrated = nr.narrate_wonder_advisor(placements, wonder_name)
+        if gs._advisor_budget_warning:
+            warn = gs._advisor_budget_warning
+            gs._advisor_budget_warning = None
+            return f"!! {warn}\n\n{narrated}"
+        return narrated
 
     return await _logged(
         ctx,

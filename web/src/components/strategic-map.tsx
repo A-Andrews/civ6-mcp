@@ -138,7 +138,7 @@ function MapRenderer({ gameId, mapData, spatialMap, spatialTurns }: {
 
   const [currentTurn, setCurrentTurn] = useState(mapData.maxTurn);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(0);
+  const [speed, setSpeed] = useState(3);
   const animRef = useRef(0);
   const lastFrameRef = useRef(0);
   const hexSize = 6; // fixed base hex size — zoom handles magnification
@@ -685,7 +685,12 @@ function MapRenderer({ gameId, mapData, spatialMap, spatialTurns }: {
       if (el?.contains(app.canvas)) {
         el.removeChild(app.canvas);
       }
-      app.destroy(true, { children: true });
+      try {
+        app.destroy(true, { children: true });
+      } catch {
+        // app.init() may not have completed yet (e.g. tab switch
+        // during load) — safe to ignore, GC handles the rest.
+      }
       cleanupRectListeners?.();
     };
   }, [

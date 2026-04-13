@@ -6,6 +6,8 @@ import { useState, useRef, useEffect } from "react";
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, Globe, X } from "lucide-react";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AdmissibilityBadge } from "@/components/admissibility-badge";
 import { PageShell } from "@/components/page-shell";
 import { useDiaryList } from "@/lib/use-diary";
 import { slugFromFilename } from "@/lib/diary-types";
@@ -220,23 +222,25 @@ function GamesPageInner() {
 
   const {
     filters,
+    admissibleOnly,
     sortKey,
     sortDir,
     filterOptions,
     sorted,
     active,
     toggleFilter,
+    toggleAdmissible,
     clearFilters,
     handleSort,
-  } = useGameFilters(games, searchParams.get("scenario"));
+  } = useGameFilters(games, searchParams.get("scenario"), searchParams.get("model"));
 
   return (
     <PageShell active="games">
       <main className="flex-1 px-3 py-6 sm:px-6 sm:py-10">
         <div className="mx-auto max-w-5xl">
-          <h2 className="font-display text-3xl font-bold tracking-[0.08em] uppercase text-marble-800">
+          <h1 className="font-display text-3xl font-bold tracking-[0.08em] uppercase text-marble-800">
             Games
-          </h2>
+          </h1>
           <p className="mt-1 text-base text-marble-500">
             Turn-by-turn diaries, agent reflections, and strategic maps.
           </p>
@@ -255,6 +259,15 @@ function GamesPageInner() {
             <>
               {/* Filter bar */}
               <div className="mt-5 flex flex-wrap items-center gap-2">
+                {/* Admissible toggle */}
+                <ToggleChip
+                  label="Admissible"
+                  active={admissibleOnly}
+                  onClick={toggleAdmissible}
+                />
+
+                <span className="mx-1 h-4 w-px bg-marble-300/50" />
+
                 {/* Status — inline toggles */}
                 {STATUS_OPTIONS.map((s) => (
                   <ToggleChip
@@ -425,7 +438,7 @@ function GamesPageInner() {
               {sorted.length === 0 ? (
                 <div className="mt-8 flex flex-col items-center justify-center gap-2">
                   <p className="font-display text-sm tracking-[0.08em] uppercase text-marble-500">
-                    No civilizations match your criteria
+                    No games match these filters
                   </p>
                   <button
                     onClick={clearFilters}
@@ -435,6 +448,7 @@ function GamesPageInner() {
                   </button>
                 </div>
               ) : (
+                <TooltipProvider>
                 <div className="mt-3 overflow-x-auto rounded-sm border border-marble-300/50">
                   <table className="w-full text-sm">
                     <thead>
@@ -532,8 +546,14 @@ function GamesPageInner() {
                                     </p>
                                   )}
                                   {game.runId && (
-                                    <p className="mt-0.5 font-mono text-[10px] text-marble-400">
+                                    <p className="mt-0.5 flex items-center gap-1 font-mono text-[10px] text-marble-400">
                                       {game.runId}
+                                      <AdmissibilityBadge
+                                        admissible={game.admissible}
+                                        excludeReason={game.excludeReason}
+                                        status={game.status}
+                                        evalTrack={game.evalTrack}
+                                      />
                                     </p>
                                   )}
                                 </div>
@@ -609,6 +629,7 @@ function GamesPageInner() {
                     </tbody>
                   </table>
                 </div>
+                </TooltipProvider>
               )}
             </>
           )}

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useDiaryList } from "@/lib/use-diary";
-import { slugFromFilename, sortGamesLiveFirst } from "@/lib/diary-types";
+import { slugFromFilename, sortGamesLiveFirst, isWorthShowing } from "@/lib/diary-types";
 import { getCivColors } from "@/lib/civ-colors";
 import { CivSymbol } from "./civ-icon";
 import { LeaderPortrait } from "@/components/leader-portrait";
@@ -15,6 +15,13 @@ import { SkeletonBlock, SkeletonLine } from "./skeleton";
 export function RecentGames() {
   const games = useDiaryList();
   const [ready, setReady] = useState(false);
+
+  // Filter to worth-showing games (admissible completed OR mature live)
+  // so the 6-slot sidebar doesn't display boot-failure noise or scumming.
+  const sorted = useMemo(
+    () => sortGamesLiveFirst(games.filter(isWorthShowing)),
+    [games],
+  );
 
   useEffect(() => {
     if (games.length > 0) {
@@ -56,18 +63,16 @@ export function RecentGames() {
     );
   }
 
-  const sorted = sortGamesLiveFirst(games);
-
   return (
     <div className="space-y-1.5">
-      {sorted.map((game) => {
+      {sorted.slice(0, 6).map((game) => {
         const colors = getCivColors(game.label, game.leader);
 
         return (
           <Link
             key={game.filename}
             href={`/games/${slugFromFilename(game.filename)}`}
-            className="group flex items-stretch gap-0 rounded-sm border border-marble-300/50 bg-marble-50 transition-colors hover:border-marble-400 hover:bg-marble-100"
+            className="group flex items-stretch gap-0 rounded-sm border border-marble-300/50 bg-marble-50 transition-all duration-200 hover:border-marble-400 hover:bg-marble-100 hover:-translate-y-px hover:shadow-sm"
           >
             {/* Color accent bar */}
             <div

@@ -1,18 +1,38 @@
 #!/usr/bin/env python3
-"""Sync civ-mcp JSONL files to Convex — watch mode or batch upload.
+"""Sync civ-mcp JSONL files to Convex.
 
-Modes:
-  --watch            Stream local file changes in real-time (default).
-  --upload DIR       One-shot batch upload of all local files in DIR.
-  --cloud BUCKET     Batch sync from a cloud bucket (Azure Blob / GCS / S3).
-  --watch --cloud BUCKET  Poll cloud bucket for changes every 30s.
+Three modes, different roles:
+
+  --watch  (default, local file watching)
+    Long-running process. Uses watchfiles.awatch on ~/.civ6-mcp/ and streams
+    diary/log updates incrementally as the MCP server writes them. Tracks
+    per-file line counts in .sync_state.json so re-runs are idempotent. Runs
+    check_idle_games every 5 min to auto-complete stalled games. This is
+    what the orchestrator runs in a persistent tmux session per machine so
+    live games stream to Convex in real time.
+
+  --upload DIR  (one-shot batch)
+    Scans a directory for game files, applies should_sync_game() quality
+    gate (skip <10 turn micro-runs), ingests each game, and calls
+    completeGame to set outcome + admissibility. Called by the orchestrator
+    at post-game as a "finalisation" step — runs in 10-30s and is mostly a
+    no-op for files the watcher has already streamed.
+
+  --cloud BUCKET  (one-shot batch from cloud)
+    Reads game files from Azure/GCS/S3 instead of a local dir. Used for
+    historical backfill and cross-machine recovery, not live operation.
+
+  --backfill-outcomes --cloud BUCKET
+    Scans completed games with missing outcomes, fetches their log.jsonl
+    from cloud storage, parses game_over events (or falls back to tool_call
+    regex), and patches completeGame. For recovering outcomes from games
+    that completed before the scumming/game-over detection fixes landed.
 
 Usage:
-    python scripts/convex_sync.py                              # watch local (dev)
-    python scripts/convex_sync.py --prod                       # watch local (prod)
-    python scripts/convex_sync.py --upload ./results/          # batch local
-    python scripts/convex_sync.py --cloud az://civbench --prod # batch cloud
-    python scripts/convex_sync.py --watch --cloud az://civbench --prod
+    python scripts/convex_sync.py --prod                       # live watch (prod)
+    python scripts/convex_sync.py --upload ~/.civ6-mcp --prod  # post-game batch
+    python scripts/convex_sync.py --cloud az://telemetry --prod
+    python scripts/convex_sync.py --backfill-outcomes --cloud az://telemetry --prod
 
 Env files are loaded from web/ relative to this script. Environment variables
 CONVEX_URL and CONVEX_DEPLOY_KEY override file values if set.
@@ -29,6 +49,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import signal
 import sys
 import time
@@ -247,11 +268,48 @@ def _get_cloud_fs(bucket_url: str) -> tuple[Any, str]:
 
     Returns (fs, prefix) where prefix is the path portion without scheme.
     E.g. "az://civbench" → (AzureBlobFileSystem, "civbench").
+
+    Loads Azure credentials from evals/.env if present, then falls back
+    to environment variables, then DefaultAzureCredential.
     """
     import fsspec
 
     scheme = bucket_url.split("://")[0]
     prefix = bucket_url[len(scheme) + 3 :]
+
+    # Load credentials from evals/.env if available
+    evals_env = SCRIPT_DIR.parent / "evals" / ".env"
+    env = _load_env_file(evals_env)
+
+    conn_str = env.get("AZURE_STORAGE_CONNECTION_STRING", "") or os.environ.get(
+        "AZURE_STORAGE_CONNECTION_STRING", ""
+    )
+    if conn_str:
+        fs = fsspec.filesystem(scheme, connection_string=conn_str)
+        return fs, prefix
+
+    account = env.get("AZURE_STORAGE_ACCOUNT_NAME", "") or os.environ.get(
+        "AZURE_STORAGE_ACCOUNT_NAME", ""
+    )
+    key = env.get("AZURE_STORAGE_ACCOUNT_KEY", "") or os.environ.get(
+        "AZURE_STORAGE_ACCOUNT_KEY", ""
+    )
+    if account and key:
+        fs = fsspec.filesystem(scheme, account_name=account, account_key=key)
+        return fs, prefix
+
+    # Fallback: no explicit credentials (relies on DefaultAzureCredential / az login)
+    if account:
+        try:
+            from azure.identity import DefaultAzureCredential
+
+            fs = fsspec.filesystem(
+                scheme, account_name=account, credential=DefaultAzureCredential()
+            )
+            return fs, prefix
+        except Exception:
+            pass
+
     fs = fsspec.filesystem(scheme)
     return fs, prefix
 
@@ -331,34 +389,136 @@ def _extract_outcome(log_lines: list[str]) -> dict[str, Any] | None:
     return outcome
 
 
+# Patterns for parsing game-over from end_turn tool_call result strings
+_DEFEAT_RE = re.compile(
+    r"GAME OVER — DEFEAT\. (.+?) of (.+?) won a (.+?) victory", re.IGNORECASE
+)
+_VICTORY_RE = re.compile(
+    r"GAME OVER — VICTORY! You won a (.+?) victory", re.IGNORECASE
+)
+
+
+def _extract_outcome_from_tool_calls(
+    log_lines: list[str], civ: str = "", leader: str = ""
+) -> dict[str, Any] | None:
+    """Parse outcome from end_turn tool_call results when game_over event is missing.
+
+    The _logged() wrapper writes every tool result to log.jsonl. Even when
+    log_game_over() fails, the "GAME OVER" result string is captured.
+    """
+    for line in reversed(log_lines):
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if entry.get("type") != "tool_call":
+            continue
+        result = entry.get("result", "")
+        if "GAME OVER" not in result:
+            continue
+
+        m = _DEFEAT_RE.search(result)
+        if m:
+            return {
+                "result": "defeat",
+                "winnerLeader": m.group(1),
+                "winnerCiv": m.group(2),
+                "victoryType": m.group(3),
+                "turn": entry.get("turn", 0),
+                "playerAlive": "eliminated" not in result.lower(),
+            }
+        m = _VICTORY_RE.search(result)
+        if m:
+            return {
+                "result": "victory",
+                "winnerCiv": civ,
+                "winnerLeader": leader,
+                "victoryType": m.group(1),
+                "turn": entry.get("turn", 0),
+                "playerAlive": True,
+            }
+    return None
+
+
 async def _complete_game(
-    game_id: str, client: "ConvexClient", log_lines: list[str] | None = None
+    game_id: str,
+    client: "ConvexClient",
+    log_lines: list[str] | None = None,
+    civ: str = "",
+    leader: str = "",
+    agent_model: str = "",
 ) -> None:
-    """Mark a game as completed, with outcome if available."""
+    """Mark a game as completed via completeGame mutation.
+
+    Sets outcome (if found), agent model, snapshots eloPlayers, and computes
+    admissibility atomically.
+    """
     outcome = _extract_outcome(log_lines) if log_lines else None
+    if outcome is None and log_lines:
+        outcome = _extract_outcome_from_tool_calls(log_lines, civ, leader)
+        if outcome:
+            log.info("Recovered outcome from tool_call result for %s", game_id)
+
+    args: dict[str, Any] = {"gameId": game_id}
     if outcome:
-        await client.mutation(
-            "ingest:patchGameOutcome",
-            {"gameId": game_id, "outcome": outcome},
-        )
+        args["outcome"] = outcome
+    if agent_model:
+        args["agentModel"] = agent_model
+
+    await client.mutation("ingest:completeGame", args)
+
+    if outcome:
         log.info(
-            "Marked %s completed: %s — %s (%s)",
+            "Completed %s: %s — %s (%s)",
             game_id,
             outcome["result"],
             outcome["winnerCiv"],
             outcome["victoryType"],
         )
     else:
-        await client.mutation("ingest:markGameCompleted", {"gameId": game_id})
-        log.info("Marked %s completed (no outcome found)", game_id)
+        log.info("Completed %s (no outcome found)", game_id)
+
+    # Compute 8-dimension scores and patch onto game doc
+    try:
+        from analyze import cloud_diary, cloud_log, score_game
+
+        run_id = game_id.rsplit("_", 1)[-1] if "_" in game_id else game_id
+        diary = cloud_diary(run_id)
+        log_data = cloud_log(run_id)
+        if diary:
+            scores = score_game(diary, log_data)
+            dim = {
+                "overall": float(scores["Overall Score"]["score"]),
+                "economic": float(scores["Economic Management"]["score"]),
+                "military": float(scores["Military Competence"]["score"]),
+                "scientific": float(scores["Scientific Progress"]["score"]),
+                "diplomatic": float(scores["Diplomatic Skill"]["score"]),
+                "spatial": float(scores["Spatial Reasoning"]["score"]),
+                "toolFluency": float(scores["Tool-Use Fluency"]["score"]),
+                "coherence": float(scores["Long-Horizon Coherence"]["score"]),
+            }
+            await client.mutation(
+                "ingest:patchGameFields",
+                {"gameId": game_id, "patch": {"dimensionScores": dim}},
+            )
+            avg = sum(dim.values()) / 8
+            log.info("Scored %s: avg=%.0f", game_id, avg)
+    except Exception:
+        log.debug("Dimension scoring failed for %s", game_id, exc_info=True)
 
 
-def _cloud_run_outcome(fs: Any, prefix: str, run_id: str) -> dict[str, Any] | None:
+def _cloud_run_outcome(
+    fs: Any, prefix: str, run_id: str, civ: str = "", leader: str = ""
+) -> dict[str, Any] | None:
     """Extract game outcome from a cloud run's log file."""
     log_path = f"{prefix}/runs/{run_id}/log.jsonl"
     try:
         content = fs.cat_file(log_path).decode("utf-8")
-        return _extract_outcome(content.splitlines())
+        lines = content.splitlines()
+        outcome = _extract_outcome(lines)
+        if outcome is None:
+            outcome = _extract_outcome_from_tool_calls(lines, civ, leader)
+        return outcome
     except FileNotFoundError:
         return None
     except Exception:
@@ -1016,7 +1176,25 @@ async def check_idle_games(state: dict, client: ConvexClient) -> None:
         if now - last_seen > IDLE_TIMEOUT:
             log_path = DIARY_DIR / f"log_{game_id}.jsonl"
             log_lines = log_path.read_text().splitlines() if log_path.exists() else None
-            await _complete_game(game_id, client, log_lines)
+            # Extract civ/leader/agent_model from diary
+            civ, leader, agent_model = "", "", ""
+            diary_path = DIARY_DIR / f"diary_{game_id}.jsonl"
+            if diary_path.exists():
+                try:
+                    for dl in diary_path.read_text().splitlines():
+                        row = json.loads(dl)
+                        if not civ:
+                            civ = row.get("civ", "")
+                            leader = row.get("leader", "")
+                        if row.get("is_agent") and row.get("agent_model"):
+                            agent_model = row["agent_model"]
+                            break
+                except Exception:
+                    pass
+            await _complete_game(
+                game_id, client, log_lines,
+                civ=civ, leader=leader, agent_model=agent_model,
+            )
             del state["game_last_seen"][game_id]
 
 
@@ -1061,7 +1239,24 @@ async def batch_upload(directory: Path, client: ConvexClient) -> None:
 
         log_path = directory / f"log_{gid}.jsonl"
         log_lines = log_path.read_text().splitlines() if log_path.exists() else None
-        await _complete_game(gid, client, log_lines)
+        # Extract civ/leader/agent_model from diary
+        civ, leader, agent_model = "", "", ""
+        if "diary" in files:
+            try:
+                for dl in files["diary"].read_text().splitlines():
+                    row = json.loads(dl)
+                    if not civ:
+                        civ = row.get("civ", "")
+                        leader = row.get("leader", "")
+                    if row.get("is_agent") and row.get("agent_model"):
+                        agent_model = row["agent_model"]
+                        break
+            except Exception:
+                pass
+        await _complete_game(
+            gid, client, log_lines,
+            civ=civ, leader=leader, agent_model=agent_model,
+        )
 
         elapsed = time.time() - game_start
         log.info("  %s done (%.1fs)", gid, elapsed)
@@ -1119,7 +1314,16 @@ async def batch_upload_cloud(bucket_url: str, client: ConvexClient) -> None:
 
 
 async def watch_loop(diary_dir: Path, client: ConvexClient) -> None:
-    """Watch directory and stream changes to Convex in real-time."""
+    """Watch directory and stream changes to Convex in real-time.
+
+    NOTE: `should_sync_game()` quality gate is deliberately NOT applied here.
+    The watcher streams everything as it arrives so the frontend can show
+    games from turn 0 onward. Filtering happens at the display layer via
+    `MIN_LIVE_TURNS` in web/src/lib/diary-types.ts. Early-abort games will
+    accumulate as short-lived `status="live"` rows that get marked
+    `completed` by `check_idle_games` after 30 min and then filtered out
+    by the frontend because they fail the `admissible` threshold (T<50).
+    """
     state = load_state()
 
     # Graceful shutdown
@@ -1166,81 +1370,110 @@ async def watch_loop(diary_dir: Path, client: ConvexClient) -> None:
         log.info("State saved, exiting")
 
 
-async def watch_loop_cloud(bucket_url: str, client: ConvexClient) -> None:
-    """Poll cloud bucket for new/changed runs and sync to Convex.
+# ---------------------------------------------------------------------------
+# Backfill missing outcomes
+# ---------------------------------------------------------------------------
 
-    Uses a persistent temp directory so that incremental sync state (line
-    counts, byte offsets) works correctly across poll iterations.
-    """
-    import tempfile
 
-    shutdown = asyncio.Event()
+async def backfill_outcomes(bucket_url: str, client: ConvexClient) -> None:
+    """Backfill missing outcomes from cloud log files for completed games."""
+    # 1. Fetch all games from Convex
+    resp = await client.client.post(
+        f"{client.base_url}/api/query",
+        json={"path": "diary:listGames", "args": {}},
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    all_games = data.get("value", [])
 
-    def on_signal(*_: Any) -> None:
-        log.info("Shutting down...")
-        shutdown.set()
+    missing = [
+        g for g in all_games
+        if g.get("status") == "completed" and not g.get("outcome")
+    ]
+    if not missing:
+        log.info("All completed games have outcomes — nothing to backfill")
+        return
 
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(sig, on_signal)
+    log.info("Found %d game(s) with missing outcomes:", len(missing))
+    for g in missing:
+        log.info(
+            "  %s (model=%s, turns=%d)",
+            g.get("gameId", "?"),
+            g.get("agentModel", "?"),
+            g.get("count", 0),
+        )
 
+    # 2. Connect to cloud storage
     fs, prefix = _get_cloud_fs(bucket_url)
-    state: dict[str, Any] = {"files": {}, "game_last_seen": {}}
-    completed_runs: set[str] = set()
 
-    with tempfile.TemporaryDirectory(prefix="civbench_watch_") as tmp:
-        tmp_dir = Path(tmp)
+    # 3. Discover all cloud runs
+    manifests = discover_cloud_runs(bucket_url)
+    run_map: dict[str, dict[str, Any]] = {}
+    for m in manifests:
+        rid = m.get("run_id", "")
+        if rid:
+            run_map[rid] = m
 
-        while not shutdown.is_set():
-            try:
-                manifests = discover_cloud_runs(bucket_url)
+    # 4. For each missing game, try to extract outcome from cloud log
+    patched = 0
+    for g in missing:
+        game_id = g.get("gameId", "")
+        run_id = g.get("runId") or ""
 
-                for manifest in manifests:
-                    run_id = manifest.get("run_id", "")
-                    if not run_id or run_id in completed_runs:
-                        continue
+        # Try to find run_id from game_id if not stored
+        if not run_id:
+            parts = game_id.rsplit("_", 1)
+            candidate = parts[-1] if len(parts) > 1 else ""
+            if candidate and not candidate.lstrip("-").isdigit():
+                run_id = candidate
 
-                    game_id = _download_cloud_run(fs, prefix, run_id, manifest, tmp_dir)
-                    if not game_id:
-                        continue
+        if not run_id:
+            log.warning("  %s: no run_id — cannot locate cloud log", game_id)
+            continue
 
-                    # Sync using stateful functions (track line counts etc.)
-                    games = discover_games(tmp_dir)
-                    if game_id in games:
-                        for ftype in (
-                            "diary",
-                            "cities",
-                            "spatial",
-                            "mapturns",
-                        ):
-                            if ftype in games[game_id]:
-                                await sync_file(games[game_id][ftype], state, client)
+        log_path = f"{prefix}/runs/{run_id}/log.jsonl"
+        try:
+            content = fs.cat_file(log_path).decode("utf-8")
+            lines = content.splitlines()
+        except FileNotFoundError:
+            log.warning("  %s: cloud log not found at %s", game_id, log_path)
+            continue
+        except Exception:
+            log.warning("  %s: failed to read cloud log", game_id, exc_info=True)
+            continue
 
-                    # Check completion via game_over entry in log
-                    outcome = _cloud_run_outcome(fs, prefix, run_id)
-                    if outcome is not None:
-                        await client.mutation(
-                            "ingest:patchGameOutcome",
-                            {"gameId": game_id, "outcome": outcome},
-                        )
-                        log.info(
-                            "Marked %s completed: %s — %s (%s)",
-                            game_id,
-                            outcome["result"],
-                            outcome["winnerCiv"],
-                            outcome["victoryType"],
-                        )
-                        completed_runs.add(run_id)
-            except Exception:
-                log.exception("Error during cloud watch poll")
+        # Try game_over event first, then tool_call fallback
+        outcome = _extract_outcome(lines)
+        if outcome is None:
+            civ = g.get("label", "")
+            leader = g.get("leader", "")
+            outcome = _extract_outcome_from_tool_calls(lines, civ, leader)
+            if outcome:
+                log.info("  %s: recovered from tool_call fallback", game_id)
 
-            # Wait 30s or until shutdown
-            try:
-                await asyncio.wait_for(shutdown.wait(), timeout=30)
-                break
-            except asyncio.TimeoutError:
-                pass
+        if outcome:
+            args: dict[str, Any] = {
+                "gameId": game_id,
+                "outcome": outcome,
+                "force": True,
+            }
+            model = g.get("agentModel", "")
+            if model:
+                args["agentModel"] = model
+            await client.mutation("ingest:completeGame", args)
+            log.info(
+                "  %s: PATCHED %s — %s (%s) T%s",
+                game_id,
+                outcome["result"],
+                outcome["winnerCiv"],
+                outcome["victoryType"],
+                outcome.get("turn", "?"),
+            )
+            patched += 1
+        else:
+            log.warning("  %s: no outcome found in cloud log (%d lines)", game_id, len(lines))
 
-    log.info("Cloud watch loop exiting")
+    log.info("=== Backfill complete: %d/%d outcomes patched ===", patched, len(missing))
 
 
 # ---------------------------------------------------------------------------
@@ -1267,12 +1500,18 @@ async def main() -> None:
         metavar="DIR",
         help="One-shot batch upload of all files in DIR, then exit",
     )
+    mode.add_argument(
+        "--backfill-outcomes",
+        action="store_true",
+        help="Backfill missing outcomes from cloud log files, then exit",
+    )
     parser.add_argument(
         "--cloud",
         type=str,
         metavar="BUCKET",
-        help="Cloud bucket URL (e.g. az://civbench). "
-        "Batch sync by default; add --watch to poll for changes.",
+        help="Cloud bucket URL (e.g. az://telemetry) for one-shot batch "
+        "upload or --backfill-outcomes. Use local --watch on each machine "
+        "for live streaming instead.",
     )
     args = parser.parse_args()
 
@@ -1293,7 +1532,13 @@ async def main() -> None:
 
     client = ConvexClient(convex_url, deploy_key)
     try:
-        if args.upload:
+        if args.backfill_outcomes:
+            if not args.cloud:
+                log.error("--backfill-outcomes requires --cloud BUCKET")
+                sys.exit(1)
+            log.info("[%s] Backfilling outcomes from %s", env_label, args.cloud)
+            await backfill_outcomes(args.cloud, client)
+        elif args.upload:
             upload_dir = Path(args.upload).expanduser().resolve()
             if not upload_dir.is_dir():
                 log.error("Directory not found: %s", upload_dir)
@@ -1302,13 +1547,14 @@ async def main() -> None:
             await batch_upload(upload_dir, client)
         elif args.cloud:
             if args.watch:
-                log.info(
-                    "[%s] Watching cloud %s → %s", env_label, args.cloud, convex_url
+                log.error(
+                    "--watch --cloud is no longer supported. Use --watch "
+                    "(local file watching) on each machine, or --cloud alone "
+                    "for one-shot batch historical backfill."
                 )
-                await watch_loop_cloud(args.cloud, client)
-            else:
-                log.info("[%s] Batch cloud %s → %s", env_label, args.cloud, convex_url)
-                await batch_upload_cloud(args.cloud, client)
+                sys.exit(1)
+            log.info("[%s] Batch cloud %s → %s", env_label, args.cloud, convex_url)
+            await batch_upload_cloud(args.cloud, client)
         else:
             log.info("[%s] Watching %s → %s", env_label, DIARY_DIR, convex_url)
             await watch_loop(DIARY_DIR, client)
