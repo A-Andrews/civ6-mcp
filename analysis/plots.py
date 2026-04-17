@@ -71,7 +71,7 @@ STATUS_UNFINISHED = "#B0A99F"
 # Configure seaborn to match the marble theme
 sns.set_theme(
     style="whitegrid",
-    font_scale=1.15,
+    font_scale=1.3,
     rc={
         "axes.facecolor":    "white",
         "figure.facecolor":  "white",
@@ -215,12 +215,12 @@ def plot_outcome_heatmap(games_df: pd.DataFrame) -> plt.Figure:
     marble_cmap = LinearSegmentedColormap.from_list(
         "marble_warm", [MARBLE[100], GOLD_LIGHT, TERRACOTTA]
     )
-    fig, ax = plt.subplots(figsize=(9, 4))
+    fig, ax = plt.subplots(figsize=(9, 2.2))
     counts = games_df.groupby(["model", "outcome"]).size().unstack(fill_value=0)
     counts.index = [_label(m) for m in counts.index]
     sns.heatmap(counts, annot=True, fmt="d", cmap=marble_cmap, ax=ax, cbar=False,
                 linewidths=0.5, linecolor=MARBLE[50])
-    ax.set_title("Game Outcomes by Model (admissible games)", fontsize=13, fontweight="bold",
+    ax.set_title("Game Outcomes by Model", fontsize=16, fontweight="bold",
                  color=MARBLE[800])
     ax.set_xlabel("")
     ax.set_ylabel("")
@@ -246,54 +246,49 @@ def plot_victory_breakdown(games_df: pd.DataFrame) -> plt.Figure:
         .size()
         .reset_index(name="count")
     )
+    # Agent victories collapse to a single "Agent victory" label; defeats
+    # are labelled by the AI's victory type (what beat the agent).
     pivot["label"] = pivot.apply(
-        lambda r: f"{r['outcome']} — {r['victory_type']}" if r["victory_type"]
-        else r["outcome"], axis=1
+        lambda r: "Agent victory" if r["outcome"] == "victory"
+        else (r["victory_type"] if r["victory_type"] else r["outcome"]),
+        axis=1,
     )
     wide = pivot.groupby(["model", "label"])["count"].sum().unstack(fill_value=0)
     wide.index = [_label(m) for m in wide.index]
 
-    # Assign a distinct color per column, grouped by outcome family.
-    # Defeat subtypes get spaced shades of terracotta→red;
-    # victory subtypes get spaced shades of patina→green;
-    # turn_limit / elimination get neutrals.
-    from matplotlib.colors import to_rgb
-    import colorsys
-
-    def _shade_family(base_hex: str, n: int) -> list[str]:
-        """Return n visually distinct shades of a base color (lightness spread)."""
-        r, g, b = to_rgb(base_hex)
-        h, l, s = colorsys.rgb_to_hls(r, g, b)
-        l_values = [0.35 + 0.35 * i / max(n - 1, 1) for i in range(n)] if n > 1 else [0.5]
-        return [
-            "#{:02x}{:02x}{:02x}".format(
-                *[int(c * 255) for c in colorsys.hls_to_rgb(h, lv, s)]
-            )
-            for lv in l_values
-        ]
-
-    defeat_cols  = [c for c in wide.columns if "defeat"    in c.lower() or "elimination" in c.lower()]
-    victory_cols = [c for c in wide.columns if "victory"   in c.lower()]
-    other_cols   = [c for c in wide.columns if c not in defeat_cols and c not in victory_cols]
-
-    defeat_shades  = _shade_family(TERRACOTTA,       len(defeat_cols))
-    victory_shades = _shade_family(STATUS_VICTORY,   len(victory_cols))
-    other_shades   = _shade_family(STATUS_UNFINISHED, len(other_cols))
+    # Fixed colours per defeat type; agent victory gets STATUS_VICTORY green.
+    DEFEAT_COLORS = {
+        "Culture":    OCEAN,
+        "Technology": TERRACOTTA,
+        "Score":      GOLD,
+        "Domination": "#8B4A6E",   # muted purple
+        "Religious":  PATINA,
+        "Score":      GOLD,
+    }
+    defeat_cols  = [c for c in wide.columns if c != "Agent victory"]
+    victory_cols = [c for c in wide.columns if c == "Agent victory"]
 
     color_map = {
-        **dict(zip(defeat_cols,  defeat_shades)),
-        **dict(zip(victory_cols, victory_shades)),
-        **dict(zip(other_cols,   other_shades)),
+        c: DEFEAT_COLORS.get(c, MARBLE[500]) for c in defeat_cols
     }
+    color_map["Agent victory"] = STATUS_VICTORY
+
+    # Defeats at the bottom, agent victories on top
+    col_order = sorted(defeat_cols) + victory_cols
+    wide = wide.reindex(columns=col_order, fill_value=0)
     col_colors = [color_map[c] for c in wide.columns]
-    fig, ax = plt.subplots(figsize=(10, 4))
+
+    fig, ax = plt.subplots(figsize=(10, 3))
     wide.plot(kind="bar", stacked=True, ax=ax, color=col_colors, width=0.5)
-    ax.set_title("Victory/Defeat Type by Model (admissible games)", fontsize=13, fontweight="bold",
+    max_count = int(wide.sum(axis=1).max())
+    ax.set_ylim(0, max_count + 0.8)
+    ax.set_yticks(range(0, max_count + 1))
+    ax.set_title("Victory/Defeat Type by Model", fontsize=16, fontweight="bold",
                  color=MARBLE[800])
     ax.set_xlabel("")
     ax.set_ylabel("Game Count")
     ax.tick_params(axis="x", rotation=0)
-    ax.legend(loc="upper right", fontsize=8, ncol=2,
+    ax.legend(loc="upper right", fontsize=10, ncol=2,
               facecolor="white", edgecolor=MARBLE[300])
     plt.tight_layout()
     _save(fig, "victory_breakdown")
@@ -308,7 +303,7 @@ def plot_normalised_score(games_df: pd.DataFrame) -> plt.Figure:
         .sort_values(ascending=False)
         .index.tolist()
     )
-    fig, ax = plt.subplots(figsize=(9, 5))
+    fig, ax = plt.subplots(figsize=(9, 3.2))
     games_df = games_df.copy()
     games_df["model_label"] = games_df["model"].map(_label)
     label_order = [_label(m) for m in order]
@@ -322,52 +317,61 @@ def plot_normalised_score(games_df: pd.DataFrame) -> plt.Figure:
                   linewidth=0.5, edgecolor=MARBLE[50], legend=False)
     ax.axhline(0.5, ls="--", color=MARBLE[500], alpha=0.6, lw=1)
     ax.set_xlabel("")
-    ax.set_ylabel("Normalised Score (agent / winner)")
-    ax.set_title("Normalised Score by Model (admissible games)",
-                 fontsize=13, fontweight="bold", color=MARBLE[800])
+    ax.set_ylabel("Normalised Score")
+    ax.set_title("Normalised Score by Model",
+                 fontsize=16, fontweight="bold", color=MARBLE[800])
     plt.tight_layout()
     _save(fig, "normalised_score")
     return fig
 
 
-def plot_icc_table(icc_df: pd.DataFrame) -> plt.Figure:
-    """Render ICC discriminative power table as a figure."""
-    fig, ax = plt.subplots(figsize=(10, 4))
-    ax.axis("off")
-    cols = ["Metric", "ICC", "Within SD", "Between SD", "Verdict"]
-    rows = [
-        [
-            r["metric"],
-            f"{r['ICC']:.3f}",
-            f"{r['within_SD']:.3f}" if r["within_SD"] is not None else "—",
-            f"{r['between_SD']:.3f}" if r["between_SD"] is not None else "—",
-            r["verdict"],
-        ]
-        for _, r in icc_df.iterrows()
+def plot_icc_table(icc_df: pd.DataFrame) -> str:
+    """Render ICC table as markdown (returned) and LaTeX (saved to icc_table.tex)."""
+    # Markdown
+    md_lines = [
+        "### Discriminative Power (ICC) — ground_control",
+        "",
+        "| Metric | ICC | Within SD | Between SD | Verdict |",
+        "| --- | --- | --- | --- | --- |",
     ]
-    table = ax.table(cellText=rows, colLabels=cols, loc="center", cellLoc="center")
-    table.auto_set_font_size(False)
-    table.set_fontsize(9)
-    table.scale(1, 1.4)
-    verdict_colors = {
-        "discriminative": "#D4EDE3",   # STATUS_VICTORY tint
-        "marginal":       "#F5EAD0",   # gold tint
-        "noise":          "#F2D9D3",   # STATUS_DEFEAT tint
+    for _, r in icc_df.iterrows():
+        within  = f"{r['within_SD']:.3f}"  if r["within_SD"]  is not None else "---"
+        between = f"{r['between_SD']:.3f}" if r["between_SD"] is not None else "---"
+        md_lines.append(f"| {r['metric']} | {r['ICC']:.3f} | {within} | {between} | {r['verdict']} |")
+    md = "\n".join(md_lines)
+    (FIGURES / "icc_table.md").write_text(md)
+
+    # LaTeX
+    VERDICT_CMD = {
+        "discriminative": r"\textbf{discriminative}",
+        "marginal":       "marginal",
+        "noise":          "noise",
     }
-    # Header row: marble surface
-    for j in range(len(cols)):
-        table[0, j].set_facecolor(MARBLE[200])
-        table[0, j].set_text_props(color=MARBLE[800], fontweight="bold")
-    for i, (_, r) in enumerate(icc_df.iterrows()):
-        color = verdict_colors.get(r["verdict"], MARBLE[100])
-        for j in range(len(cols)):
-            table[i + 1, j].set_facecolor(color)
-            table[i + 1, j].set_text_props(color=MARBLE[800])
-    ax.set_title("Discriminative Power (ICC) — ground_control, admissible games",
-                 fontsize=12, fontweight="bold", pad=10, color=MARBLE[800])
-    plt.tight_layout()
-    _save(fig, "icc_table")
-    return fig
+    tex_rows = []
+    for _, r in icc_df.iterrows():
+        within  = f"{r['within_SD']:.3f}"  if r["within_SD"]  is not None else "---"
+        between = f"{r['between_SD']:.3f}" if r["between_SD"] is not None else "---"
+        metric  = r["metric"].replace("_", r"\_")
+        verdict = VERDICT_CMD.get(r["verdict"], r["verdict"])
+        tex_rows.append(f"  {metric} & {r['ICC']:.3f} & {within} & {between} & {verdict} \\\\")
+
+    tex = "\n".join([
+        r"\begin{table}[ht]",
+        r"  \centering",
+        r"  \caption{Discriminative Power (ICC) --- \texttt{ground\_control}}",
+        r"  \label{tab:icc}",
+        r"  \begin{tabular}{lrrrr}",
+        r"    \toprule",
+        r"    Metric & ICC & Within SD & Between SD & Verdict \\",
+        r"    \midrule",
+        *[f"    {row.strip()}" for row in tex_rows],
+        r"    \bottomrule",
+        r"  \end{tabular}",
+        r"\end{table}",
+    ])
+    (FIGURES / "icc_table.tex").write_text(tex)
+
+    return md
 
 
 def plot_score_trajectories(
@@ -386,7 +390,7 @@ def plot_score_trajectories(
         (diary_df["turn"] <= max_turn)
     ].copy()
 
-    fig, ax = plt.subplots(figsize=(12, 5))
+    fig, ax = plt.subplots(figsize=(12, 3.8))
     models_plotted = []
     for model in sorted(sub["model"].unique()):
         if "AI_" in model:
@@ -396,18 +400,20 @@ def plot_score_trajectories(
         for _, gdf in mdata.groupby("game_id"):
             ax.plot(gdf["turn"], gdf[metric], color=color, alpha=0.12, lw=0.7)
         mean_s = mdata.groupby("turn")[metric].mean()
-        std_s = mdata.groupby("turn")[metric].std().fillna(0)
+        std_s  = mdata.groupby("turn")[metric].std().fillna(0)
+        n_s    = mdata.groupby("turn")[metric].count().clip(lower=1)
+        ci_s   = 1.96 * std_s / np.sqrt(n_s)
         ax.plot(mean_s.index, mean_s, color=color, lw=2, label=_label(model))
-        ax.fill_between(mean_s.index, mean_s - std_s, mean_s + std_s,
-                        color=color, alpha=0.13)
+        ax.fill_between(mean_s.index, mean_s - ci_s, mean_s + ci_s,
+                        color=color, alpha=0.18)
         models_plotted.append(model)
 
     ax.set_xlabel("Turn")
     ax.set_ylabel(ylabel)
-    ax.set_title(f"{ylabel} Trajectory — {scenario} (admissible games)",
-                 fontsize=13, fontweight="bold", color=MARBLE[800])
+    ax.set_title(f"{ylabel} Trajectory — {scenario}",
+                 fontsize=16, fontweight="bold", color=MARBLE[800])
     handles, labels = ax.get_legend_handles_labels()
-    _add_icon_legend(ax, handles, labels, models_plotted, loc="upper left", fontsize=10)
+    _add_icon_legend(ax, handles, labels, models_plotted, loc="upper left", fontsize=12)
     ax.set_xlim(0, max_turn)
     plt.tight_layout()
     _save(fig, f"trajectory_{metric}_{scenario}")
@@ -434,7 +440,7 @@ def plot_yield_trajectories(
         (diary_df["turn"] <= max_turn)
     ].copy()
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 9))
+    fig, axes = plt.subplots(2, 2, figsize=(14, 6.8))
     axes = axes.flatten()
     for ax, (metric, ylabel) in zip(axes, YIELDS):
         models_plotted: list[str] = []
@@ -444,19 +450,21 @@ def plot_yield_trajectories(
             color = PALETTE.get(model, MARBLE[500])
             mdata = sub[sub["model"] == model]
             mean_s = mdata.groupby("turn")[metric].mean()
-            std_s = mdata.groupby("turn")[metric].std().fillna(0)
+            std_s  = mdata.groupby("turn")[metric].std().fillna(0)
+            n_s    = mdata.groupby("turn")[metric].count().clip(lower=1)
+            ci_s   = 1.96 * std_s / np.sqrt(n_s)
             ax.plot(mean_s.index, mean_s, color=color, lw=2, label=_label(model))
             ax.fill_between(mean_s.index,
-                            (mean_s - std_s).clip(lower=0),
-                            mean_s + std_s, color=color, alpha=0.12)
+                            (mean_s - ci_s).clip(lower=0),
+                            mean_s + ci_s, color=color, alpha=0.18)
             models_plotted.append(model)
         ax.set_xlabel("Turn")
         ax.set_ylabel(ylabel)
-        ax.set_title(ylabel, fontsize=11, color=MARBLE[800])
+        ax.set_title(ylabel, fontsize=14, color=MARBLE[800])
         handles, labels = ax.get_legend_handles_labels()
-        _add_icon_legend(ax, handles, labels, models_plotted, fontsize=8, loc="upper left")
-    plt.suptitle(f"Yield Trajectories — {scenario} (admissible games)",
-                 fontsize=13, fontweight="bold", color=MARBLE[800], y=1.01)
+        _add_icon_legend(ax, handles, labels, models_plotted, fontsize=10, loc="upper left")
+    plt.suptitle(f"Yield Trajectories — {scenario}",
+                 fontsize=16, fontweight="bold", color=MARBLE[800], y=1.01)
     plt.tight_layout()
     _save(fig, f"yield_trajectories_{scenario}")
     return fig
@@ -482,29 +490,30 @@ def plot_expansion_timing(
         .reset_index()
     )
 
-    fig, ax = plt.subplots(figsize=(11, 5))
+    fig, ax = plt.subplots(figsize=(11, 3.8))
     models_plotted: list[str] = []
     for model in sorted(pivot["model"].unique()):
         mdata = pivot[pivot["model"] == model]
         color = PALETTE.get(model, MARBLE[500])
+        ci = 1.96 * mdata["std"].fillna(0) / np.sqrt(mdata["count"].clip(lower=1))
         ax.plot(mdata["city_number"], mdata["mean"], marker="o",
                 color=color, lw=2, label=_label(model))
         ax.fill_between(
             mdata["city_number"],
-            (mdata["mean"] - mdata["std"].fillna(0)).clip(lower=0),
-            mdata["mean"] + mdata["std"].fillna(0),
-            color=color, alpha=0.13,
+            (mdata["mean"] - ci).clip(lower=0),
+            mdata["mean"] + ci,
+            color=color, alpha=0.18,
         )
         models_plotted.append(model)
     for city_n, turn_b in [(2, 40), (3, 75), (4, 100)]:
         ax.axhline(turn_b, color=STATUS_DEFEAT, ls="--", alpha=0.45, lw=1)
-        ax.text(6.05, turn_b, f"T{turn_b}", color=STATUS_DEFEAT, fontsize=8, va="center")
+        ax.text(6.05, turn_b, f"T{turn_b}", color=STATUS_DEFEAT, fontsize=10, va="center")
     ax.set_xlabel("City Number (ordinal)")
-    ax.set_ylabel("Turn Founded (mean ± 1 SD)")
-    ax.set_title(f"Expansion Timing — {scenario} (admissible games)",
-                 fontsize=13, fontweight="bold", color=MARBLE[800])
+    ax.set_ylabel("Turn Founded (mean ± 95% CI)")
+    ax.set_title(f"Expansion Timing — {scenario}",
+                 fontsize=16, fontweight="bold", color=MARBLE[800])
     handles, labels = ax.get_legend_handles_labels()
-    _add_icon_legend(ax, handles, labels, models_plotted, fontsize=10)
+    _add_icon_legend(ax, handles, labels, models_plotted, fontsize=12)
     ax.set_xticks(range(1, 7))
     plt.tight_layout()
     _save(fig, f"expansion_timing_{scenario}")
@@ -531,11 +540,15 @@ def plot_city_milestones(
     x = np.arange(len(milestones))
     width = 0.35 if len(model_list) == 2 else 0.25
 
-    fig, ax = plt.subplots(figsize=(11, 5))
+    fig, ax = plt.subplots(figsize=(11, 3.8))
     for i, model in enumerate(model_list):
-        vals = [m_sub[m_sub["model"] == model][col].mean() for col in milestones]
+        mdata = m_sub[m_sub["model"] == model]
+        vals = [mdata[col].mean() for col in milestones]
+        cis  = [1.96 * mdata[col].std() / np.sqrt(max(mdata[col].count(), 1))
+                for col in milestones]
         ax.bar(x + i * width, vals, width, label=_label(model),
-               color=PALETTE.get(model, MARBLE[500]), alpha=0.85)
+               color=PALETTE.get(model, MARBLE[500]), alpha=0.85,
+               yerr=cis, capsize=4, error_kw=dict(elinewidth=1.2, ecolor=MARBLE[700]))
     for j, bval in enumerate(BENCHMARKS):
         x0, x1 = x[j] - 0.05, x[j] + width * len(model_list) + 0.05
         ax.hlines(bval, x0, x1, colors=STATUS_DEFEAT, ls="dashed", lw=1.2, alpha=0.55,
@@ -543,8 +556,8 @@ def plot_city_milestones(
     ax.set_xticks(x + width * (len(model_list) - 1) / 2)
     ax.set_xticklabels(labels)
     ax.set_ylabel("City Count")
-    ax.set_title(f"City Count at Milestone Turns — {scenario} (admissible games)",
-                 fontsize=13, fontweight="bold", color=MARBLE[800])
+    ax.set_title(f"City Count at Milestone Turns — {scenario}",
+                 fontsize=16, fontweight="bold", color=MARBLE[800])
     handles, labels_leg = ax.get_legend_handles_labels()
     # Only pass model entries (not the benchmark line) to icon handler
     model_handles = handles[:len(model_list)]
@@ -552,23 +565,27 @@ def plot_city_milestones(
     bench_handles = handles[len(model_list):]
     bench_labels = labels_leg[len(model_list):]
     icon_leg = _add_icon_legend(ax, model_handles + bench_handles,
-                                model_labels + bench_labels, model_list, fontsize=9)
+                                model_labels + bench_labels, model_list, fontsize=11)
     plt.tight_layout()
     _save(fig, f"city_milestones_{scenario}")
     return fig
 
 
-def plot_radar(summary_df: pd.DataFrame) -> plt.Figure:
+def plot_radar(
+    summary_df: pd.DataFrame,
+    se_df: pd.DataFrame | None = None,
+) -> plt.Figure:
     """Radar chart from a summary DataFrame.
 
     summary_df: index = model names, columns = axis labels, values = z-scores.
+    se_df: same shape as summary_df, values = 95% CI half-widths (optional).
     """
     labels = list(summary_df.columns)
     N = len(labels)
     angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
     angles += angles[:1]
 
-    fig, ax = plt.subplots(figsize=(7, 7), subplot_kw=dict(polar=True))
+    fig, ax = plt.subplots(figsize=(8, 5.5), subplot_kw=dict(polar=True))
     ax.set_facecolor(MARBLE[50])
     ax.spines["polar"].set_color(MARBLE[300])
     ax.grid(color=MARBLE[300], linewidth=0.8)
@@ -581,17 +598,27 @@ def plot_radar(summary_df: pd.DataFrame) -> plt.Figure:
         vals += vals[:1]
         ax.plot(angles, vals, color=color, lw=2.2, label=_label(model))
         ax.fill(angles, vals, color=color, alpha=0.09)
+        # 95% CI band
+        if se_df is not None and model in se_df.index:
+            ses = se_df.loc[model].tolist()
+            ses += ses[:1]
+            lo = [max(v - s, -2.5) for v, s in zip(vals, ses)]
+            hi = [min(v + s,  2.5) for v, s in zip(vals, ses)]
+            ax.fill(angles, hi, color=color, alpha=0.12)
+            ax.fill(angles, lo, color="white", alpha=1.0)
+            ax.fill(angles, lo, color=color, alpha=0.09)
         models_plotted.append(model)
 
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels(labels, size=11, color=MARBLE[800])
+    ax.tick_params(axis="x", pad=12)
     ax.set_ylim(-2.5, 2.5)
     ax.yaxis.set_tick_params(labelsize=8, labelcolor=MARBLE[600])
-    ax.set_title("Multi-Model Performance Radar\n(z-scored, ground_control, admissible games)",
-                 fontsize=12, fontweight="bold", pad=20, color=MARBLE[800])
+    ax.set_title("Multi-Model Performance Radar\n(z-scored, ground_control)",
+                 fontsize=15, fontweight="bold", pad=25, color=MARBLE[800])
     handles, leg_labels = ax.get_legend_handles_labels()
     _add_icon_legend(ax, handles, leg_labels, models_plotted,
-                     loc="upper right", bbox_to_anchor=(1.35, 1.1), fontsize=10)
+                     loc="upper right", bbox_to_anchor=(1.35, 1.1), fontsize=12)
     plt.tight_layout()
     _save(fig, "radar")
     return fig
@@ -615,8 +642,7 @@ def plot_pmr_subcategories(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> pl
                              "rate": count / denom})
 
     pmr_df = pd.DataFrame(pmr_rows)
-    pmr_mean = pmr_df.groupby(["model", "subcategory"])["rate"].mean().reset_index()
-    pmr_mean["model_label"] = pmr_mean["model"].map(_label)
+    pmr_df["model_label"] = pmr_df["model"].map(_label)
 
     sub_order = ["victory_monitoring", "diplomatic_monitoring", "strategic_map", "resource_monitoring"]
     sub_labels = {
@@ -625,14 +651,16 @@ def plot_pmr_subcategories(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> pl
         "strategic_map": "Strategic\nMap",
         "resource_monitoring": "Resource\nMonitoring",
     }
-    pmr_mean["sub_label"] = pmr_mean["subcategory"].map(sub_labels)
+    pmr_df["sub_label"] = pmr_df["subcategory"].map(sub_labels)
 
-    fig, ax = plt.subplots(figsize=(12, 5))
-    sns.barplot(data=pmr_mean, x="sub_label", y="rate", hue="model_label",
+    fig, ax = plt.subplots(figsize=(12, 3.8))
+    sns.barplot(data=pmr_df, x="sub_label", y="rate", hue="model_label",
                 order=[sub_labels[s] for s in sub_order],
-                palette={_label(m): c for m, c in PALETTE.items()}, ax=ax)
-    ax.set_title("Proactive Monitoring Rate by Subcategory (admissible games)",
-                 fontsize=13, fontweight="bold", color=MARBLE[800])
+                palette={_label(m): c for m, c in PALETTE.items()},
+                errorbar=("ci", 95), capsize=0.05, err_kws={"linewidth": 1.2},
+                ax=ax)
+    ax.set_title("Proactive Monitoring Rate by Subcategory",
+                 fontsize=16, fontweight="bold", color=MARBLE[800])
     ax.set_xlabel("")
     ax.set_ylabel("Fraction of Total Calls")
     ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
@@ -640,7 +668,7 @@ def plot_pmr_subcategories(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> pl
     _LABEL_TO_MODEL = {v: k for k, v in MODEL_LABELS.items()}
     models_ordered = [_LABEL_TO_MODEL.get(l, l) for l in leg_labels]
     ax.get_legend().remove()
-    _add_icon_legend(ax, handles, leg_labels, models_ordered, title="Model", fontsize=9)
+    _add_icon_legend(ax, handles, leg_labels, models_ordered, fontsize=11)
     plt.tight_layout()
     _save(fig, "pmr_subcategories")
     return fig
@@ -654,7 +682,7 @@ def plot_pmr_over_time(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> plt.Fi
     # tools_df is already admissible-filtered; drop turn=0 sentinel rows
     t = tools_df[tools_df["turn"] > 0].copy()
 
-    fig, ax = plt.subplots(figsize=(12, 5))
+    fig, ax = plt.subplots(figsize=(12, 3.8))
     models_plotted: list[str] = []
     for model in sorted(t["model"].unique()):
         color = PALETTE.get(model, MARBLE[500])
@@ -670,10 +698,10 @@ def plot_pmr_over_time(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> plt.Fi
     ax.set_xlabel("Turn")
     ax.set_ylabel("PMR (10-turn rolling avg)")
     ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
-    ax.set_title("Proactive Monitoring Rate Over Time (admissible games)",
-                 fontsize=13, fontweight="bold", color=MARBLE[800])
+    ax.set_title("Proactive Monitoring Rate Over Time",
+                 fontsize=16, fontweight="bold", color=MARBLE[800])
     handles, leg_labels = ax.get_legend_handles_labels()
-    _add_icon_legend(ax, handles, leg_labels, models_plotted, fontsize=10)
+    _add_icon_legend(ax, handles, leg_labels, models_plotted, fontsize=12)
     plt.tight_layout()
     _save(fig, "pmr_over_time")
     return fig
@@ -709,7 +737,7 @@ def plot_tool_category_stacked_area(
     }
 
     model_list = sorted(t["model"].unique())
-    fig, axes = plt.subplots(1, len(model_list), figsize=(5 * len(model_list), 5), sharey=True)
+    fig, axes = plt.subplots(1, len(model_list), figsize=(5 * len(model_list), 3.8), sharey=True)
     if len(model_list) == 1:
         axes = [axes]
 
@@ -733,17 +761,17 @@ def plot_tool_category_stacked_area(
         )
         ax.set_yscale("symlog", linthresh=1, linscale=0.3)
         ax.yaxis.set_major_formatter(mticker.ScalarFormatter())
-        ax.set_title(_label(model), fontsize=11, color=MARBLE[800])
+        ax.set_title(_label(model), fontsize=14, color=MARBLE[800])
         ax.set_xlabel("Turn")
         if model == model_list[0]:
             ax.set_ylabel("Avg calls / turn (symlog)")
 
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", ncol=5,
-               bbox_to_anchor=(0.5, -0.08), fontsize=9,
+               bbox_to_anchor=(0.5, -0.08), fontsize=11,
                facecolor="white", edgecolor=MARBLE[300])
-    plt.suptitle("Tool Category Composition Over Time — ground_control (admissible games)",
-                 fontsize=13, fontweight="bold", color=MARBLE[800])
+    plt.suptitle("Tool Category Composition Over Time — ground_control",
+                 fontsize=16, fontweight="bold", color=MARBLE[800])
     plt.tight_layout()
     _save(fig, "tool_stacked_area")
     return fig
@@ -782,7 +810,7 @@ def plot_rag_breakdown(rag_results: pd.DataFrame | None = None) -> plt.Figure:
     x = np.arange(len(models))
     labels = [_label(m) for m in models]
 
-    fig, ax = plt.subplots(figsize=(7, 5))
+    fig, ax = plt.subplots(figsize=(7, 3.8))
     ax.bar(x, y_vals, color=STATUS_VICTORY, label="Executed (Y)")
     ax.bar(x, p_vals, bottom=y_vals, color=GOLD, label="Partial (P)")
     ax.bar(x, n_vals,
@@ -793,15 +821,15 @@ def plot_rag_breakdown(rag_results: pd.DataFrame | None = None) -> plt.Figure:
     for i, (y, p, n, total) in enumerate(zip(y_vals, p_vals, n_vals, totals)):
         rag = y + 0.5 * p
         ax.text(i, 1.02, f"RAG={rag:.1%}\n(n={total})", ha="center", va="bottom",
-                fontsize=10, fontweight="bold", color=MARBLE[800])
+                fontsize=12, fontweight="bold", color=MARBLE[800])
 
     ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=11)
+    ax.set_xticklabels(labels, fontsize=14)
     ax.set_ylabel("Proportion of commitments")
     ax.set_ylim(0, 1.18)
-    ax.set_title("Reflection-Action Gap: Commitment Execution Breakdown\n(admissible games, K=10 turns)",
-                 fontsize=12, fontweight="bold", color=MARBLE[800])
-    ax.legend(loc="lower right", fontsize=9, facecolor="white", edgecolor=MARBLE[300])
+    ax.set_title("Reflection-Action Gap: Commitment Execution Breakdown (K=10 turns)",
+                 fontsize=15, fontweight="bold", color=MARBLE[800])
+    ax.legend(loc="lower right", fontsize=11, facecolor="white", edgecolor=MARBLE[300])
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
     plt.tight_layout()
     _save(fig, "rag_breakdown")
@@ -866,7 +894,7 @@ def plot_rag_sensitivity(rag_df: pd.DataFrame | None = None) -> plt.Figure:
             agg.append({"model": model, "K": k, "rag_score": (y + 0.5 * p) / n, "n": n})
         rag_df = pd.DataFrame(agg)
 
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(8, 3.8))
     models_plotted: list[str] = []
     for model in sorted(rag_df["model"].unique()):
         mdata = rag_df[rag_df["model"] == model].sort_values("K")
@@ -877,15 +905,15 @@ def plot_rag_sensitivity(rag_df: pd.DataFrame | None = None) -> plt.Figure:
         ax.annotate(f"{last['rag_score']:.1%}",
                     xy=(last["K"], last["rag_score"]),
                     xytext=(4, 4), textcoords="offset points",
-                    fontsize=9, color=color)
+                    fontsize=11, color=color)
         models_plotted.append(model)
 
-    ax.set_xlabel("K (lookahead turns)", fontsize=11)
-    ax.set_ylabel("RAG Score  (Y + 0.5×P) / total", fontsize=11)
-    ax.set_title("Reflection-Action Gap Sensitivity to K\n(admissible games)",
-                 fontsize=12, fontweight="bold", color=MARBLE[800])
+    ax.set_xlabel("K (lookahead turns)", fontsize=14)
+    ax.set_ylabel("RAG Score  (Y + 0.5×P) / total", fontsize=14)
+    ax.set_title("Reflection-Action Gap Sensitivity to K",
+                 fontsize=15, fontweight="bold", color=MARBLE[800])
     handles, leg_labels = ax.get_legend_handles_labels()
-    _add_icon_legend(ax, handles, leg_labels, models_plotted, fontsize=10)
+    _add_icon_legend(ax, handles, leg_labels, models_plotted, fontsize=12)
     ax.set_xticks(K_VALUES)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
     ax.set_ylim(0, 1.0)
@@ -942,7 +970,7 @@ def plot_inflection_points(
             results[m].append((t, rho, len(vals)))
 
     # Plot
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(10, 3.8))
 
     for m in metrics:
         pts = [(t, rho, n) for t, rho, n in results[m] if not np.isnan(rho)]
@@ -954,17 +982,32 @@ def plot_inflection_points(
         lw = 3 if m == "score" else 1.5
         alpha = 1.0 if m == "score" else 0.75
         ax.plot(ts, rhos, color=color, linewidth=lw, alpha=alpha, label=label)
+        # 95% CI via Fisher z-transform
+        ci_lo, ci_hi = [], []
+        for rho_i, n_i in zip(rhos, ns):
+            if n_i > 3:
+                z = np.arctanh(np.clip(rho_i, -0.9999, 0.9999))
+                se = 1.0 / np.sqrt(n_i - 3)
+                ci_lo.append(np.tanh(z - 1.96 * se))
+                ci_hi.append(np.tanh(z + 1.96 * se))
+            else:
+                ci_lo.append(rho_i)
+                ci_hi.append(rho_i)
+        ax.fill_between(ts, ci_lo, ci_hi, color=color, alpha=0.10)
 
     # Annotate N where sample size changes (dotted boundary lines)
     ref = results.get("exploration_pct", results[metrics[0]])
     prev_n = None
+    toggle = 0
     for t, rho, n in ref:
         if np.isnan(rho):
             continue
         if n != prev_n:
             ax.axvline(t, color=MARBLE[300], linewidth=0.8, linestyle=":")
-            ax.text(t + 1, -1.0, f"n={n}", fontsize=7, color=MARBLE[500], va="bottom")
+            y_pos = -0.90 if toggle % 2 == 0 else -1.02
+            ax.text(t + 1, y_pos, f"n={n}", fontsize=9, color=MARBLE[500], va="bottom")
             prev_n = n
+            toggle += 1
 
     # Annotate the score curve peak
     score_pts = [(t, rho) for t, rho, _ in results.get("score", []) if not np.isnan(rho) and rho > 0.9]
@@ -973,26 +1016,25 @@ def plot_inflection_points(
         ax.annotate(
             f"raw score ρ={rho_peak:.2f}\nfrom T{t_peak}",
             xy=(t_peak, rho_peak), xytext=(t_peak + 10, rho_peak - 0.15),
-            fontsize=8, color=_INFLECTION_COLORS["score"],
+            fontsize=10, color=_INFLECTION_COLORS["score"],
             arrowprops=dict(arrowstyle="->", color=_INFLECTION_COLORS["score"], lw=1),
         )
 
     ax.axhline(0, color=MARBLE[700], linewidth=0.8, linestyle="--", alpha=0.4)
     ax.axhline(0.5, color=MARBLE[300], linewidth=0.6, linestyle=":")
     ax.axhline(-0.5, color=MARBLE[300], linewidth=0.6, linestyle=":")
-    ax.text(t_max - 2, 0.52, "ρ = 0.5", fontsize=7, color=MARBLE[500], ha="right")
-    ax.text(t_max - 2, -0.48, "ρ = −0.5", fontsize=7, color=MARBLE[500], ha="right")
+    ax.text(t_max - 2, 0.52, "ρ = 0.5", fontsize=9, color=MARBLE[500], ha="right")
+    ax.text(t_max - 2, -0.48, "ρ = −0.5", fontsize=9, color=MARBLE[500], ha="right")
 
     ax.set_xlabel("Turn (T)")
     ax.set_ylabel("Spearman ρ with final normalised score")
     ax.set_title(
-        f"Inflection Point Sweep — When do early metrics predict final outcome?\n"
-        f"({scenario}, admissible games, n varies with diary coverage)",
-        color=MARBLE[800],
+        f"Inflection Point Sweep — When do early metrics predict final outcome?",
+        color=MARBLE[800], fontsize=14, fontweight="bold",
     )
     ax.set_ylim(-1.05, 1.05)
     ax.set_xlim(t_min, t_max)
-    ax.legend(loc="upper left", fontsize=9, facecolor="white", edgecolor=MARBLE[300])
+    ax.legend(loc="upper left", fontsize=11, facecolor="white", edgecolor=MARBLE[300])
 
     _save(fig, "inflection_points")
     return fig
@@ -1064,7 +1106,7 @@ def plot_inflection_deltas(
 
     _DELTA_LABELS = {k: f"Δ {v}" for k, v in _INFLECTION_LABELS.items()}
 
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(10, 3.8))
     ax2 = ax.twinx()
 
     for m in metrics:
@@ -1077,6 +1119,18 @@ def plot_inflection_deltas(
         lw = 2.5 if m == "score" else 1.5
         alpha = 1.0 if m == "score" else 0.75
         ax.plot(ts, rhos, color=color, linewidth=lw, alpha=alpha, label=label)
+        # 95% CI via Fisher z-transform
+        ci_lo, ci_hi = [], []
+        for rho_i, n_i in zip(rhos, ns):
+            if n_i > 3:
+                z = np.arctanh(np.clip(rho_i, -0.9999, 0.9999))
+                se = 1.0 / np.sqrt(n_i - 3)
+                ci_lo.append(np.tanh(z - 1.96 * se))
+                ci_hi.append(np.tanh(z + 1.96 * se))
+            else:
+                ci_lo.append(rho_i)
+                ci_hi.append(rho_i)
+        ax.fill_between(ts, ci_lo, ci_hi, color=color, alpha=0.10)
         # Filled marker where test survives BH-FDR
         sig_ts = [t for t, rho in zip(ts, rhos) if (m, t) in surviving]
         sig_rhos = [rho for t, rho in zip(ts, rhos) if (m, t) in surviving]
@@ -1088,15 +1142,15 @@ def plot_inflection_deltas(
     if ref_pts:
         ref_t, ref_n = zip(*[(t, n) for t, _, _, n in results[metrics[0]]])
         ax2.step(ref_t, ref_n, color=MARBLE[400], linewidth=0.8, where="mid", label="n (games)")
-        ax2.set_ylabel("n games", color=MARBLE[500], fontsize=8)
+        ax2.set_ylabel("n games", color=MARBLE[500], fontsize=10)
         ax2.tick_params(axis="y", labelcolor=MARBLE[500], labelsize=7)
         ax2.set_ylim(0, max(ref_n) * 3)  # keep n line low so it doesn't crowd ρ curves
 
     ax.axhline(0, color=MARBLE[700], linewidth=0.8, linestyle="--", alpha=0.4)
     ax.axhline(0.5, color=MARBLE[300], linewidth=0.6, linestyle=":")
     ax.axhline(-0.5, color=MARBLE[300], linewidth=0.6, linestyle=":")
-    ax.text(t_max - 2, 0.52, "ρ = 0.5", fontsize=7, color=MARBLE[500], ha="right")
-    ax.text(t_max - 2, -0.48, "ρ = −0.5", fontsize=7, color=MARBLE[500], ha="right")
+    ax.text(t_max - 2, 0.52, "ρ = 0.5", fontsize=9, color=MARBLE[500], ha="right")
+    ax.text(t_max - 2, -0.48, "ρ = −0.5", fontsize=9, color=MARBLE[500], ha="right")
 
     n_sig = len(surviving)
     n_total = len(all_tests)
@@ -1104,13 +1158,12 @@ def plot_inflection_deltas(
     ax.set_ylabel("Spearman ρ with final normalised score")
     ax.set_title(
         f"Inflection Delta Sweep — Which 5-turn windows predict final outcome?\n"
-        f"({scenario}, admissible games, non-overlapping windows; "
-        f"filled = BH-FDR significant, {n_sig}/{n_total} tests survive)",
-        color=MARBLE[800],
+        f"(filled markers = BH-FDR significant, {n_sig}/{n_total} tests survive)",
+        color=MARBLE[800], fontsize=13, fontweight="bold",
     )
     ax.set_ylim(-1.05, 1.05)
     ax.set_xlim(t_min, t_max)
-    ax.legend(loc="upper left", fontsize=9, facecolor="white", edgecolor=MARBLE[300])
+    ax.legend(loc="upper left", fontsize=11, facecolor="white", edgecolor=MARBLE[300])
 
     _save(fig, "inflection_deltas")
     return fig
@@ -1148,7 +1201,7 @@ def plot_tool_error_rate(tools_df: pd.DataFrame, top_n: int = 15) -> plt.Figure:
     n_models = len(models)
     bar_h = 0.8 / max(n_models, 1)
 
-    fig, ax = plt.subplots(figsize=(10, max(5, 0.45 * len(tool_order) + 1.5)))
+    fig, ax = plt.subplots(figsize=(10, max(3.5, 0.35 * len(tool_order) + 1.0)))
     y = np.arange(len(tool_order))
     for i, model in enumerate(models):
         sub = grp[grp["model"] == model].set_index("tool").reindex(tool_order)
@@ -1156,22 +1209,29 @@ def plot_tool_error_rate(tools_df: pd.DataFrame, top_n: int = 15) -> plt.Figure:
         counts = sub["calls"].fillna(0).astype(int).values
         color = PALETTE.get(model, MARBLE[500])
         offset = (i - (n_models - 1) / 2) * bar_h
-        bars = ax.barh(y + offset, rates, bar_h, color=color, alpha=0.85, label=_label(model))
+        # Wilson 95% CI half-widths
+        ci_vals = [
+            1.96 * np.sqrt(max(p * (1 - p) / max(n, 1), 0))
+            for p, n in zip(rates, counts)
+        ]
+        bars = ax.barh(y + offset, rates, bar_h, color=color, alpha=0.85, label=_label(model),
+                       xerr=ci_vals, capsize=3,
+                       error_kw=dict(elinewidth=1.1, ecolor=MARBLE[700]))
         # Annotate with n (call count) for context
         for bar, n in zip(bars, counts):
             if n > 0:
                 ax.text(bar.get_width() + 0.005, bar.get_y() + bar.get_height() / 2,
-                        f"n={n}", va="center", fontsize=7, color=MARBLE[600])
+                        f"n={n}", va="center", fontsize=9, color=MARBLE[600])
 
     ax.set_yticks(y)
-    ax.set_yticklabels(tool_order, fontsize=9)
+    ax.set_yticklabels(tool_order, fontsize=11)
     ax.set_xlabel("Failure rate")
     ax.xaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
     ax.set_xlim(0, min(1.0, max(0.15, grp["failure_rate"].max() * 1.25 + 0.05)))
     ax.set_title(f"Tool Failure Rate — Top {len(tool_order)} Tools by Total Failures",
-                 fontsize=13, fontweight="bold", color=MARBLE[800])
+                 fontsize=16, fontweight="bold", color=MARBLE[800])
     handles, leg_labels = ax.get_legend_handles_labels()
-    _add_icon_legend(ax, handles, leg_labels, models, title="Model", fontsize=9, loc="lower right")
+    _add_icon_legend(ax, handles, leg_labels, models, fontsize=11, loc="lower right")
     plt.tight_layout()
     _save(fig, "tool_error_rate")
     return fig
@@ -1204,7 +1264,7 @@ def plot_tool_latency(tools_df: pd.DataFrame, top_n: int = 20) -> plt.Figure:
     # Size scaling: total_s → marker area
     sizes = 40 + 300 * (per_tool["total_s"] / per_tool["total_s"].max())
 
-    fig, ax = plt.subplots(figsize=(11, 6))
+    fig, ax = plt.subplots(figsize=(11, 4.5))
     ax.scatter(per_tool["calls"], per_tool["median_ms"],
                s=sizes, c=GOLD, alpha=0.55, edgecolor=MARBLE[700], linewidth=0.8)
 
@@ -1215,7 +1275,7 @@ def plot_tool_latency(tools_df: pd.DataFrame, top_n: int = 20) -> plt.Figure:
             row["tool"],
             (row["calls"], row["median_ms"]),
             xytext=(5, 3), textcoords="offset points",
-            fontsize=7.5, color=MARBLE[800],
+            fontsize=11, color=MARBLE[800],
         )
 
     ax.set_xscale("log")
@@ -1223,7 +1283,7 @@ def plot_tool_latency(tools_df: pd.DataFrame, top_n: int = 20) -> plt.Figure:
     ax.set_xlabel("Total calls (log)")
     ax.set_ylabel("Median latency per call (ms, log)")
     ax.set_title("Tool Latency vs Call Frequency (marker size scales with total wall time)",
-                 fontsize=13, fontweight="bold", color=MARBLE[800])
+                 fontsize=16, fontweight="bold", color=MARBLE[800])
     ax.grid(True, which="both", alpha=0.3)
     plt.tight_layout()
     _save(fig, "tool_latency")
@@ -1263,7 +1323,7 @@ def plot_tool_entropy(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> plt.Fig
     if merged.empty:
         return _empty_fig("Tool Entropy", "No games with both entropy and score", "tool_entropy")
 
-    fig, ax = plt.subplots(figsize=(9, 6))
+    fig, ax = plt.subplots(figsize=(9, 3.8))
     for model in sorted(merged["model"].unique()):
         sub = merged[merged["model"] == model]
         color = PALETTE.get(model, MARBLE[500])
@@ -1277,24 +1337,41 @@ def plot_tool_entropy(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> plt.Fig
                 label=_label(model) if scenario == "ground_control" else None,
             )
 
-    # Spearman correlation across all points
+    # Per-model regression line + 95% CI band
     from scipy.stats import spearmanr
+    from scipy import stats as _stats
+    for model in sorted(merged["model"].unique()):
+        sub = merged[merged["model"] == model].dropna(subset=["entropy", "normalised_score"])
+        if len(sub) < 3:
+            continue
+        color = PALETTE.get(model, MARBLE[500])
+        x_fit = np.linspace(sub["entropy"].min(), sub["entropy"].max(), 80)
+        slope, intercept, _, _, se = _stats.linregress(sub["entropy"], sub["normalised_score"])
+        y_fit = slope * x_fit + intercept
+        n = len(sub)
+        x_mean = sub["entropy"].mean()
+        sxx = ((sub["entropy"] - x_mean) ** 2).sum()
+        ci = 1.96 * se * np.sqrt(1 / n + (x_fit - x_mean) ** 2 / sxx)
+        ax.plot(x_fit, y_fit, color=color, lw=1.4, alpha=0.7, linestyle="--")
+        ax.fill_between(x_fit, y_fit - ci, y_fit + ci, color=color, alpha=0.10)
+
+    # Spearman correlation across all points
     rho, p_val = spearmanr(merged["entropy"], merged["normalised_score"])
     ax.text(
         0.02, 0.97,
         f"Spearman ρ = {rho:+.2f}  (p = {p_val:.2f}, n = {len(merged)})",
-        transform=ax.transAxes, fontsize=10, va="top",
+        transform=ax.transAxes, fontsize=12, va="top",
         bbox=dict(facecolor="white", edgecolor=MARBLE[300], boxstyle="round,pad=0.4"),
     )
 
     ax.set_xlabel("Tool-call Shannon entropy (bits)")
     ax.set_ylabel("Normalised score")
-    ax.set_title("Tool Repertoire Breadth vs Outcome (admissible games)",
-                 fontsize=13, fontweight="bold", color=MARBLE[800])
+    ax.set_title("Tool Repertoire Breadth vs Outcome",
+                 fontsize=16, fontweight="bold", color=MARBLE[800])
 
     handles, leg_labels = ax.get_legend_handles_labels()
     models_plotted = sorted(merged["model"].unique())
-    _add_icon_legend(ax, handles, leg_labels, models_plotted, title="Model", fontsize=9, loc="lower right")
+    _add_icon_legend(ax, handles, leg_labels, models_plotted, fontsize=11, loc="lower right")
     plt.tight_layout()
     _save(fig, "tool_entropy")
     return fig
@@ -1335,7 +1412,17 @@ def plot_metric_correlation(metrics_df: pd.DataFrame, games_df: pd.DataFrame) ->
 
     corr = mat.corr(method="spearman")
 
-    fig, ax = plt.subplots(figsize=(10, 8))
+    # Shorten column names for display
+    SHORT = {
+        "normalised_score": "norm_score", "turns_played": "turns",
+        "final_cities": "cities", "final_exploration_pct": "exploration",
+        "final_science": "science", "final_gold": "gold",
+        "final_military": "military", "final_culture": "culture",
+    }
+    corr.index = [SHORT.get(c, c) for c in corr.index]
+    corr.columns = [SHORT.get(c, c) for c in corr.columns]
+
+    fig, ax = plt.subplots(figsize=(11, 8))
     from matplotlib.colors import LinearSegmentedColormap
     diverging = LinearSegmentedColormap.from_list(
         "marble_div", [OCEAN, MARBLE[100], TERRACOTTA]
@@ -1344,14 +1431,14 @@ def plot_metric_correlation(metrics_df: pd.DataFrame, games_df: pd.DataFrame) ->
         corr, annot=True, fmt=".2f", cmap=diverging, center=0,
         vmin=-1, vmax=1, square=True, linewidths=0.5,
         cbar_kws={"label": "Spearman ρ", "shrink": 0.75},
-        annot_kws={"fontsize": 7.5}, ax=ax,
+        annot_kws={"fontsize": 10}, ax=ax,
     )
     ax.set_title(
-        f"Metric Correlation Matrix — GC admissible games (n={len(mat)})",
-        fontsize=13, fontweight="bold", color=MARBLE[800],
+        f"Metric Correlation Matrix — ground_control (n={len(mat)})",
+        fontsize=16, fontweight="bold", color=MARBLE[800],
     )
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right", fontsize=8)
-    ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=8)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right", fontsize=11)
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=11)
     plt.tight_layout()
     _save(fig, "metric_correlation")
     return fig
@@ -1410,7 +1497,7 @@ def plot_decision_follow_through(
     dist = dist[col_order]
     dist_pct = dist.div(dist.sum(axis=1), axis=0)
 
-    fig, ax = plt.subplots(figsize=(10, 4.5))
+    fig, ax = plt.subplots(figsize=(10, 3.4))
     cat_colors = {
         "unit_action": TERRACOTTA,
         "other":       OCEAN,
@@ -1440,7 +1527,7 @@ def plot_decision_follow_through(
                 ax.text(
                     lft + v / 2, yi, f"{v:.0%}",
                     ha="center", va="center",
-                    color="white", fontsize=9, fontweight="bold",
+                    color="white", fontsize=11, fontweight="bold",
                 )
         left += vals
 
@@ -1449,7 +1536,7 @@ def plot_decision_follow_through(
     for yi, model in enumerate(models):
         ax.text(
             1.015, yi, f"n={int(totals[model])}",
-            va="center", fontsize=8, color=MARBLE[700],
+            va="center", fontsize=10, color=MARBLE[700],
         )
 
     ax.set_yticks(y_pos)
@@ -1459,11 +1546,11 @@ def plot_decision_follow_through(
     ax.set_xlabel(f"Fraction of '{trigger_tool}' calls followed by…")
     ax.set_title(
         f"Decision Follow-through — first actionable tool within {window} calls of {trigger_tool}",
-        fontsize=12, fontweight="bold", color=MARBLE[800],
+        fontsize=15, fontweight="bold", color=MARBLE[800],
     )
     ax.legend(
         loc="center left", bbox_to_anchor=(1.06, 0.5),
-        fontsize=9, frameon=True,
+        fontsize=11, frameon=True,
     )
     ax.grid(False, axis="y")
     plt.tight_layout()
@@ -1489,7 +1576,7 @@ def plot_game_sparklines(
 
     ncols = 3
     nrows = (n + ncols - 1) // ncols
-    fig, axes = plt.subplots(nrows, ncols, figsize=(14, 3.1 * nrows), sharex=False)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(14, 2.3 * nrows), sharex=False)
     axes = np.atleast_1d(axes).flatten()
 
     for ax, (_, game) in zip(axes, games.iterrows()):
@@ -1497,20 +1584,20 @@ def plot_game_sparklines(
         gdf = agents[agents["game_id"] == gid].sort_values("turn")
         if gdf.empty:
             ax.text(0.5, 0.5, "(no trajectory)", ha="center", va="center",
-                    transform=ax.transAxes, fontsize=9, color=MARBLE[500])
+                    transform=ax.transAxes, fontsize=11, color=MARBLE[500])
             ax.set_title(f"{_label(game['model'])} · {game['run_id'][:26]}",
-                         fontsize=9, color=MARBLE[700])
+                         fontsize=11, color=MARBLE[700])
             continue
 
         color = PALETTE.get(game["model"], MARBLE[500])
         ax.plot(gdf["turn"], gdf["score"], color=color, lw=1.8, label="score")
         ax.fill_between(gdf["turn"], 0, gdf["score"], color=color, alpha=0.12)
-        ax.set_ylabel("score", color=color, fontsize=8)
+        ax.set_ylabel("score", color=color, fontsize=10)
         ax.tick_params(axis="y", labelcolor=color, labelsize=8)
 
         ax2 = ax.twinx()
         ax2.plot(gdf["turn"], gdf["cities"], color=MARBLE[700], lw=1.2, linestyle="--", label="cities")
-        ax2.set_ylabel("cities", color=MARBLE[700], fontsize=8)
+        ax2.set_ylabel("cities", color=MARBLE[700], fontsize=10)
         ax2.tick_params(axis="y", labelcolor=MARBLE[700], labelsize=8)
         ax2.set_ylim(bottom=0)
         ax2.grid(False)
@@ -1518,23 +1605,23 @@ def plot_game_sparklines(
         end_note = f"T{int(game['turns_played'])} · {game.get('outcome', '')}"
         scenario_tag = "SF" if game["scenario"] == "snowflake" else "GC"
         title = f"{_label(game['model'])} · {scenario_tag} · {game['run_id'][:22]}"
-        ax.set_title(title, fontsize=8.5, color=MARBLE[800], loc="left")
+        ax.set_title(title, fontsize=14, color=MARBLE[800], loc="left")
         ax.text(
             0.98, 0.04, end_note,
             transform=ax.transAxes, ha="right", va="bottom",
-            fontsize=7.5, color=MARBLE[600],
+            fontsize=11, color=MARBLE[600],
             bbox=dict(facecolor="white", edgecolor="none", pad=1.2),
         )
         ax.set_xlim(0, max(gdf["turn"].max(), 1))
-        ax.set_xlabel("turn", fontsize=8)
+        ax.set_xlabel("turn", fontsize=10)
         ax.tick_params(axis="x", labelsize=8)
 
     for ax in axes[n:]:
         ax.set_visible(False)
 
     plt.suptitle(
-        "Per-game Trajectories — admissible games (score + city count)",
-        fontsize=13, fontweight="bold", color=MARBLE[800], y=1.01,
+        "Per-game Trajectories (score + city count)",
+        fontsize=16, fontweight="bold", color=MARBLE[800], y=1.01,
     )
     plt.tight_layout()
     _save(fig, "game_sparklines")
@@ -1570,23 +1657,35 @@ def plot_reflection_quality(
             print(f"  ! load_reflections failed: {e}")
             reflection_df = pd.DataFrame()
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 3.8))
     from scipy.stats import spearmanr
+
+    from scipy import stats as _stats
 
     def _scatter_panel(ax, panel, x_col, x_label, title, empty_msg):
         if panel.empty:
             ax.text(0.5, 0.5, empty_msg, ha="center", va="center",
-                    transform=ax.transAxes, fontsize=10, color=MARBLE[500])
-            ax.set_title(title, fontsize=12, color=MARBLE[800])
+                    transform=ax.transAxes, fontsize=12, color=MARBLE[500])
+            ax.set_title(title, fontsize=15, color=MARBLE[800])
             return
         models_plotted = []
         for model in sorted(panel["model"].unique()):
-            sub = panel[panel["model"] == model]
+            sub = panel[panel["model"] == model].dropna(subset=[x_col, "normalised_score"])
             color = PALETTE.get(model, MARBLE[500])
             ax.scatter(sub[x_col], sub["normalised_score"],
                        color=color, s=110, alpha=0.85,
                        edgecolor=MARBLE[800], linewidth=1.1,
                        label=_label(model))
+            if len(sub) >= 3 and sub[x_col].nunique() > 1:
+                slope, intercept, _, _, se = _stats.linregress(sub[x_col], sub["normalised_score"])
+                x_fit = np.linspace(sub[x_col].min(), sub[x_col].max(), 80)
+                y_fit = slope * x_fit + intercept
+                n = len(sub)
+                x_mean = sub[x_col].mean()
+                sxx = ((sub[x_col] - x_mean) ** 2).sum()
+                ci = 1.96 * se * np.sqrt(1 / n + (x_fit - x_mean) ** 2 / sxx)
+                ax.plot(x_fit, y_fit, color=color, lw=1.4, alpha=0.7, linestyle="--")
+                ax.fill_between(x_fit, y_fit - ci, y_fit + ci, color=color, alpha=0.10)
             models_plotted.append(model)
         if len(panel) >= 3 and panel[x_col].nunique() > 1:
             rho, p_val = spearmanr(panel[x_col], panel["normalised_score"])
@@ -1595,14 +1694,14 @@ def plot_reflection_quality(
             stat = f"n = {len(panel)} (too few for ρ)"
         ax.text(
             0.02, 0.97, stat, transform=ax.transAxes,
-            fontsize=9.5, va="top",
+            fontsize=15, va="top",
             bbox=dict(facecolor="white", edgecolor=MARBLE[300], boxstyle="round,pad=0.4"),
         )
         ax.set_xlabel(x_label)
         ax.set_ylabel("Normalised score")
-        ax.set_title(title, fontsize=12, color=MARBLE[800])
+        ax.set_title(title, fontsize=15, color=MARBLE[800])
         handles, leg_labels = ax.get_legend_handles_labels()
-        _add_icon_legend(ax, handles, leg_labels, models_plotted, fontsize=8, loc="lower right")
+        _add_icon_legend(ax, handles, leg_labels, models_plotted, fontsize=10, loc="lower right")
 
     # Panel A — commitments per sampled turn
     if not rag_auto_df.empty:
@@ -1653,11 +1752,130 @@ def plot_reflection_quality(
     )
 
     plt.suptitle(
-        "Reflection Quality vs Outcome (admissible games)",
-        fontsize=13, fontweight="bold", color=MARBLE[800], y=1.02,
+        "Reflection Quality vs Outcome",
+        fontsize=16, fontweight="bold", color=MARBLE[800], y=1.02,
     )
     plt.tight_layout()
     _save(fig, "reflection_quality")
+    return fig
+
+
+def plot_harness_comparison() -> plt.Figure:
+    """Two-panel figure contrasting pre-harness vs harness run completion.
+
+    Panel A — Completion survival curve:
+        % of runs still playing at each turn threshold T, comparing
+        pre-harness (hex IDs) vs harness (admissible, word IDs).
+
+    Panel B — Turns-played distribution:
+        Strip + box plot of turns_played per condition.
+
+    Saved to analysis/figures/harness_comparison.{pdf,png}.
+    """
+    from analysis.pre_harness_runs import pre_harness_df
+    from analysis.admissible_games import admissible_df
+
+    pre = pre_harness_df()
+    pre["condition"] = "Pre-harness"
+
+    admissible = admissible_df()
+    admissible = admissible.rename(columns={"final_turn": "turns_played"})
+    admissible["condition"] = "Harness"
+
+    combined = pd.concat(
+        [pre[["run_id", "turns_played", "condition"]],
+         admissible[["run_id", "turns_played", "condition"]]],
+        ignore_index=True,
+    )
+
+    HARNESS_COLOR     = PATINA       # green — completion
+    PRE_HARNESS_COLOR = TERRACOTTA   # terracotta — failure
+
+    fig, (ax_survival, ax_dist) = plt.subplots(
+        1, 2,
+        figsize=(12, 3.8),
+        gridspec_kw={"width_ratios": [1.6, 1]},
+    )
+    fig.patch.set_facecolor("white")
+
+    # ------------------------------------------------------------------ #
+    # Panel A — Survival curve
+    # ------------------------------------------------------------------ #
+    thresholds = list(range(0, 340, 5))
+    for condition, color, ls in [
+        ("Pre-harness", PRE_HARNESS_COLOR, "--"),
+        ("Harness",     HARNESS_COLOR,     "-"),
+    ]:
+        subset = combined[combined["condition"] == condition]["turns_played"]
+        n = len(subset)
+        pct = [100 * (subset >= t).sum() / n for t in thresholds]
+        ax_survival.plot(
+            thresholds, pct,
+            color=color, lw=2.5, ls=ls,
+            label=f"{condition} (n={n})",
+        )
+
+    # Annotate how many pre-harness runs completed
+    n_pre = len(combined[combined["condition"] == "Pre-harness"])
+    n_completed = (pre["end_condition"].isin(["victory", "defeat"])).sum()
+    ax_survival.annotate(
+        f"Only {n_completed}/{n_pre} pre-harness runs\nreached a natural conclusion",
+        xy=(306, 100 * (pre["turns_played"] >= 306).sum() / n_pre),
+        xytext=(160, 55),
+        fontsize=11, color=PRE_HARNESS_COLOR,
+        arrowprops=dict(arrowstyle="->", color=PRE_HARNESS_COLOR, lw=1.4),
+    )
+
+    ax_survival.set_xlabel("Turns played (T)", fontsize=13)
+    ax_survival.set_ylabel("Runs still active (%)", fontsize=13)
+    ax_survival.set_title("A · Run completion survival curve", fontsize=13, color=MARBLE[800])
+    ax_survival.set_xlim(0, 335)
+    ax_survival.set_ylim(-2, 103)
+    ax_survival.legend(fontsize=11, loc="upper right")
+
+    for t, label in [(50, "T50\n(min. admissible)"), (200, "T200")]:
+        ax_survival.axvline(t, color=MARBLE[400], lw=1, ls=":")
+        ax_survival.text(t + 3, 5, label, fontsize=9, color=MARBLE[500], va="bottom")
+
+    # ------------------------------------------------------------------ #
+    # Panel B — Turns-played distribution
+    # ------------------------------------------------------------------ #
+    order = ["Pre-harness", "Harness"]
+    palette = {"Pre-harness": PRE_HARNESS_COLOR, "Harness": HARNESS_COLOR}
+
+    sns.boxplot(
+        data=combined, x="condition", y="turns_played", hue="condition",
+        order=order, palette=palette,
+        width=0.45, linewidth=1.5, fliersize=0, legend=False,
+        ax=ax_dist,
+    )
+    sns.stripplot(
+        data=combined, x="condition", y="turns_played", hue="condition",
+        order=order, palette=palette,
+        size=6, alpha=0.65, jitter=True, legend=False,
+        ax=ax_dist,
+    )
+
+    for i, cond in enumerate(order):
+        med = combined[combined["condition"] == cond]["turns_played"].median()
+        n   = len(combined[combined["condition"] == cond])
+        ax_dist.text(
+            i, med + 8, f"med={med:.0f}\nn={n}",
+            ha="center", va="bottom", fontsize=10, color=MARBLE[800],
+        )
+
+    ax_dist.set_xlabel("")
+    ax_dist.set_ylabel("Turns played", fontsize=13)
+    ax_dist.set_title("B · Turns-played distribution", fontsize=13, color=MARBLE[800])
+    ax_dist.set_ylim(-15, 360)
+
+    plt.tight_layout()
+    plt.suptitle(
+        "Harness enables reliable game completion",
+        fontsize=15, fontweight="bold", color=MARBLE[800],
+    )
+    plt.subplots_adjust(top=0.85)
+    _save(fig, "harness_comparison")
     return fig
 
 
@@ -1699,8 +1917,8 @@ def generate_all() -> None:
     plot_city_milestones(metrics, games)
     print("  ✓ city_milestones_ground_control")
 
-    radar_data = _build_radar_df(games, metrics)
-    plot_radar(radar_data)
+    radar_data, radar_se = _build_radar_df(games, metrics)
+    plot_radar(radar_data, radar_se)
     print("  ✓ radar")
 
     plot_metric_correlation(metrics, games)
@@ -1751,6 +1969,9 @@ def generate_all() -> None:
 
     plot_inflection_deltas(diary, games)
     print("  ✓ inflection_deltas")
+
+    plot_harness_comparison()
+    print("  ✓ harness_comparison")
 
     print(f"\nAll figures saved to {FIGURES}")
     for f in sorted(FIGURES.glob("*.pdf")):
@@ -1806,8 +2027,14 @@ def compute_icc_df(games_df: pd.DataFrame, metrics_df: pd.DataFrame) -> pd.DataF
     return pd.DataFrame(rows).sort_values("ICC", ascending=False)
 
 
-def _build_radar_df(games_df: pd.DataFrame, metrics_df: pd.DataFrame) -> pd.DataFrame:
-    """Build z-scored summary DataFrame for radar chart."""
+def _build_radar_df(
+    games_df: pd.DataFrame, metrics_df: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Build z-scored summary DataFrame for radar chart.
+
+    Returns (mean_df, se_df) — both indexed by model, columns = axis labels.
+    se_df contains 95% CI half-widths in z-score units.
+    """
     valid_ids = set(games_df["game_id"])
     gc_full = metrics_df[
         (metrics_df["scenario"] == "ground_control") &
@@ -1823,20 +2050,28 @@ def _build_radar_df(games_df: pd.DataFrame, metrics_df: pd.DataFrame) -> pd.Data
         "final_military": "Military",
     }
 
-    rows = {}
+    rows, se_rows = {}, {}
     for model in sorted(gc_full["model"].unique()):
         rows[model] = {}
+        se_rows[model] = {}
+        mdata = gc_full[gc_full["model"] == model]
         for col, label in RADAR_AXES.items():
             if col not in gc_full.columns:
                 rows[model][label] = 0.0
+                se_rows[model][label] = 0.0
                 continue
             global_mean = gc_full[col].mean()
-            global_std = gc_full[col].std()
-            model_mean = gc_full[gc_full["model"] == model][col].mean()
+            global_std  = gc_full[col].std()
+            model_mean  = mdata[col].mean()
+            model_std   = mdata[col].std(ddof=1)
+            n           = mdata[col].count()
             z = (model_mean - global_mean) / global_std if global_std > 0 else 0.0
-            rows[model][label] = float(np.clip(z, -2, 2))
+            # CI half-width in z-score units
+            se_z = (1.96 * model_std / np.sqrt(max(n, 1))) / global_std if global_std > 0 else 0.0
+            rows[model][label]    = float(np.clip(z, -2, 2))
+            se_rows[model][label] = float(se_z)
 
-    return pd.DataFrame(rows).T
+    return pd.DataFrame(rows).T, pd.DataFrame(se_rows).T
 
 
 if __name__ == "__main__":

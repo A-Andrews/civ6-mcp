@@ -28,9 +28,17 @@ ADMISSIBLE_GAMES: list[dict] = [
         "run_id": "steep-vermil-trebuchet-27",
         "model": "claude-opus-4-6",
         "scenario": "ground_control",
-        "final_turn": 308,
+        "final_turn": 309,
         "end_condition": "defeat",
         "notes": "AI Technology victory (Scotland/Robert the Bruce)",
+    },
+    {
+        "run_id": "epic-sable-atlas-20",
+        "model": "claude-opus-4-6",
+        "scenario": "ground_control",
+        "final_turn": 309,
+        "end_condition": "victory",
+        "notes": "Agent Technology victory (Babylon)",
     },
     {
         "run_id": "wandering-carmine-ballista-57",
@@ -40,6 +48,22 @@ ADMISSIBLE_GAMES: list[dict] = [
         "end_condition": "victory",
         "notes": "Agent Technology victory (Babylon)",
     },
+    {
+        "run_id": "exalted-vermil-ember-69",
+        "model": "claude-opus-4-6",
+        "scenario": "ground_control",
+        "final_turn": 269,
+        "end_condition": "defeat",
+        "notes": "AI Religious victory (Japan/Hojo Tokimune)",
+    },
+    {
+        "run_id": "weathered-vermil-column-34",
+        "model": "claude-opus-4-6",
+        "scenario": "ground_control",
+        "final_turn": 304,
+        "end_condition": "defeat",
+        "notes": "AI Technology victory (Korea/Seondeok)",
+    },
     # ------------------------------------------------------------------ #
     # Claude Opus 4.6 — Snowflake
     # ------------------------------------------------------------------ #
@@ -47,7 +71,7 @@ ADMISSIBLE_GAMES: list[dict] = [
         "run_id": "hidden-lilac-atlas-39",
         "model": "claude-opus-4-6",
         "scenario": "snowflake",
-        "final_turn": 329,
+        "final_turn": 330,
         "end_condition": "defeat",
         "notes": "AI Score victory (Scythia)",
     },
@@ -86,6 +110,30 @@ ADMISSIBLE_GAMES: list[dict] = [
         "end_condition": "defeat",
         "notes": "AI Technology victory (Scotland/Robert the Bruce)",
     },
+    {
+        "run_id": "blazing-pearl-bastion-64",
+        "model": "gemini-3.1-pro-preview",
+        "scenario": "ground_control",
+        "final_turn": 299,
+        "end_condition": "defeat",
+        "notes": "AI Technology victory (Scotland/Robert the Bruce)",
+    },
+    {
+        "run_id": "stormborn-ebony-ridgeline-17",
+        "model": "gemini-3.1-pro-preview",
+        "scenario": "ground_control",
+        "final_turn": 309,
+        "end_condition": "defeat",
+        "notes": "AI Technology victory (Scotland/Robert the Bruce)",
+    },
+    {
+        "run_id": "verdant-lapis-frontier-29",
+        "model": "gemini-3.1-pro-preview",
+        "scenario": "ground_control",
+        "final_turn": 300,
+        "end_condition": "defeat",
+        "notes": "AI Technology victory (Korea/Seondeok)",
+    },
     # ------------------------------------------------------------------ #
     # GPT-5.4 — Ground Control
     # ------------------------------------------------------------------ #
@@ -104,6 +152,14 @@ ADMISSIBLE_GAMES: list[dict] = [
         "final_turn": 298,
         "end_condition": "defeat",
         "notes": "AI Score victory (Japan/Hojo Tokimune)",
+    },
+    {
+        "run_id": "elder-lilac-epoch-88",
+        "model": "gpt-5.4",
+        "scenario": "ground_control",
+        "final_turn": 298,
+        "end_condition": "defeat",
+        "notes": "AI Technology victory (Korea/Seondeok)",
     },
     {
         "run_id": "fierce-umber-garrison-15",
@@ -136,7 +192,7 @@ ADMISSIBLE_GAMES: list[dict] = [
         "run_id": "celestial-ochre-monument-04",
         "model": "gpt-5.4",
         "scenario": "snowflake",
-        "final_turn": 331,
+        "final_turn": 330,
         "end_condition": "defeat",
         "notes": "AI Score victory (Scythia)",
     },
