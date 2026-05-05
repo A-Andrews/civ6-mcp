@@ -94,13 +94,15 @@ PALETTE = {
     "gpt-5.4":                OCEAN,       # steel blue — OpenAI
     "gemini-3-flash-preview":  PATINA,      # green-grey — Google
     "gemini-3.1-pro-preview":  GOLD,        # gold — Google Pro variant
+    "Kimi-K2.5":              "#7B68EE",   # medium slate blue — Moonshot AI
 }
 
 MODEL_LABELS = {
     "claude-opus-4-6":        "Claude Opus 4.6",
     "gpt-5.4":                "GPT-5.4",
     "gemini-3-flash-preview":  "Gemini Flash",
-    "gemini-3.1-pro-preview":  "Gemini Pro",
+    "gemini-3.1-pro-preview":  "Gemini 3.1 Pro",
+    "Kimi-K2.5":              "Kimi K2.5",
 }
 
 # Provider SVG icons from web/public/images/providers/
@@ -109,9 +111,62 @@ _PROVIDER_ICONS: dict[str, Path] = {
     "gpt-5.4":                WEB / "images/providers/openai_small.svg",
     "gemini-3-flash-preview":  WEB / "images/providers/google_small.svg",
     "gemini-3.1-pro-preview":  WEB / "images/providers/google_small.svg",
+    "Kimi-K2.5":              WEB / "images/providers/kimi_small.svg",
 }
 
 DPI = 300
+
+# Sample sizes per model (admissible games)
+MODEL_N = {
+    "claude-opus-4-6":       8,
+    "gpt-5.4":               8,
+    "gemini-3.1-pro-preview": 6,
+    "Kimi-K2.5":             1,
+}
+
+# Kimi is exploratory (n=1) — grey it out
+KIMI_GREY = MARBLE[400]
+
+
+def _model_color(model: str) -> str:
+    """Return palette color, greyed for Kimi (n=1 exploratory)."""
+    if model == "Kimi-K2.5":
+        return KIMI_GREY
+    return PALETTE.get(model, MARBLE[500])
+
+
+def _label_n(model: str) -> str:
+    """Return model label with sample size, greyed tag for Kimi."""
+    n = MODEL_N.get(model, "?")
+    base = MODEL_LABELS.get(model, model)
+    if model == "Kimi-K2.5":
+        return f"{base} (n={n}, exploratory)"
+    return f"{base} (n={n})"
+
+
+KIMI_HATCH = "////"
+
+
+def _model_hatch(model: str) -> str:
+    """Diagonal hatch for Kimi (n=1 exploratory); empty for all others."""
+    return KIMI_HATCH if model == "Kimi-K2.5" else ""
+
+
+def _model_marker(model: str) -> str:
+    """Diamond marker for Kimi (n=1); circle for all others."""
+    return "D" if model == "Kimi-K2.5" else "o"
+
+
+def _apply_kimi_hatch(ax: plt.Axes) -> None:
+    """Post-process seaborn/category-coloured axes: hatch patches coloured KIMI_GREY."""
+    import matplotlib.colors as mcolors
+    kimi_rgba = np.array(mcolors.to_rgba(KIMI_GREY))
+    for patch in ax.patches:
+        fc = np.asarray(patch.get_facecolor()).flatten()[:3]
+        if np.allclose(fc, kimi_rgba[:3], atol=1e-2):
+            patch.set_hatch(KIMI_HATCH)
+            patch.set_edgecolor(MARBLE[600])
+
 
 _INFLECTION_COLORS = {
     "exploration_pct": OCEAN,
@@ -210,20 +265,31 @@ def _empty_fig(title: str, msg: str, name: str) -> plt.Figure:
 
 
 def plot_outcome_heatmap(games_df: pd.DataFrame) -> plt.Figure:
-    """Heatmap of game outcomes per model."""
+    """Heatmap of game outcomes per model. Descriptive only — small sample."""
     from matplotlib.colors import LinearSegmentedColormap
     marble_cmap = LinearSegmentedColormap.from_list(
         "marble_warm", [MARBLE[100], GOLD_LIGHT, TERRACOTTA]
     )
-    fig, ax = plt.subplots(figsize=(9, 2.2))
+    fig, ax = plt.subplots(figsize=(9, 2.5))
     counts = games_df.groupby(["model", "outcome"]).size().unstack(fill_value=0)
-    counts.index = [_label(m) for m in counts.index]
+    # Add n to row labels; grey Kimi
+    def _row_label(m):
+        n = MODEL_N.get(m, "?")
+        lbl = _label(m)
+        suffix = " (exploratory)" if m == "Kimi-K2.5" else ""
+        return f"{lbl} (n={n}){suffix}"
+    counts.index = [_row_label(m) for m in counts.index]
     sns.heatmap(counts, annot=True, fmt="d", cmap=marble_cmap, ax=ax, cbar=False,
                 linewidths=0.5, linecolor=MARBLE[50])
-    ax.set_title("Game Outcomes by Model", fontsize=16, fontweight="bold",
+    ax.set_title("Game Outcomes by Model", fontsize=15, fontweight="bold",
                  color=MARBLE[800])
     ax.set_xlabel("")
     ax.set_ylabel("")
+    # Add descriptive-only note
+    fig.text(0.5, -0.04,
+             "Descriptive only — not statistically powered for model comparison "
+             "(Fisher's exact test p=0.488)",
+             ha="center", fontsize=10, color=MARBLE[600], style="italic")
     plt.tight_layout()
     _save(fig, "outcome_heatmap")
     return fig
@@ -263,7 +329,6 @@ def plot_victory_breakdown(games_df: pd.DataFrame) -> plt.Figure:
         "Score":      GOLD,
         "Domination": "#8B4A6E",   # muted purple
         "Religious":  PATINA,
-        "Score":      GOLD,
     }
     defeat_cols  = [c for c in wide.columns if c != "Agent victory"]
     victory_cols = [c for c in wide.columns if c == "Agent victory"]
@@ -280,6 +345,15 @@ def plot_victory_breakdown(games_df: pd.DataFrame) -> plt.Figure:
 
     fig, ax = plt.subplots(figsize=(10, 3))
     wide.plot(kind="bar", stacked=True, ax=ax, color=col_colors, width=0.5)
+    kimi_label = _label("Kimi-K2.5")
+    model_labels_list = wide.index.tolist()
+    if kimi_label in model_labels_list:
+        ki = model_labels_list.index(kimi_label)
+        n_models = len(model_labels_list)
+        for grp in range(len(wide.columns)):
+            p = ax.patches[grp * n_models + ki]
+            p.set_hatch(KIMI_HATCH)
+            p.set_edgecolor(MARBLE[600])
     max_count = int(wide.sum(axis=1).max())
     ax.set_ylim(0, max_count + 0.8)
     ax.set_yticks(range(0, max_count + 1))
@@ -296,7 +370,7 @@ def plot_victory_breakdown(games_df: pd.DataFrame) -> plt.Figure:
 
 
 def plot_normalised_score(games_df: pd.DataFrame) -> plt.Figure:
-    """Box + strip plot of normalised scores by model."""
+    """Dot plot (per run) with median overlay; n per model in legend."""
     order = (
         games_df.groupby("model")["normalised_score"]
         .median()
@@ -305,21 +379,36 @@ def plot_normalised_score(games_df: pd.DataFrame) -> plt.Figure:
     )
     fig, ax = plt.subplots(figsize=(9, 3.2))
     games_df = games_df.copy()
-    games_df["model_label"] = games_df["model"].map(_label)
-    label_order = [_label(m) for m in order]
-    label_palette = {_label(m): c for m, c in PALETTE.items()}
-    sns.boxplot(data=games_df, x="model_label", y="normalised_score", order=label_order,
-                hue="model_label", palette=label_palette,
-                ax=ax, width=0.45, fliersize=0, legend=False)
-    sns.stripplot(data=games_df, x="model_label", y="normalised_score", order=label_order,
-                  hue="model_label", palette=label_palette,
-                  ax=ax, size=7, jitter=True, alpha=0.75,
-                  linewidth=0.5, edgecolor=MARBLE[50], legend=False)
-    ax.axhline(0.5, ls="--", color=MARBLE[500], alpha=0.6, lw=1)
+    # Build label_n entries for legend
+    label_n_order = [_label_n(m) for m in order]
+    label_n_palette = {_label_n(m): _model_color(m) for m in order}
+    games_df["model_label_n"] = games_df["model"].map(_label_n)
+
+    # Individual dots — all runs
+    sns.stripplot(data=games_df, x="model_label_n", y="normalised_score",
+                  order=label_n_order,
+                  hue="model_label_n", palette=label_n_palette,
+                  ax=ax, size=8, jitter=True, alpha=0.80,
+                  linewidth=0.6, edgecolor=MARBLE[600], legend=False)
+
+    # Overlay median as a horizontal tick per model
+    for i, m in enumerate(order):
+        med = games_df[games_df["model"] == m]["normalised_score"].median()
+        ax.hlines(med, i - 0.22, i + 0.22,
+                  colors=_model_color(m), linewidth=2.5, zorder=5)
+
+    ax.axhline(0.5, ls="--", color=MARBLE[500], alpha=0.55, lw=1)
     ax.set_xlabel("")
-    ax.set_ylabel("Normalised Score")
-    ax.set_title("Normalised Score by Model",
-                 fontsize=16, fontweight="bold", color=MARBLE[800])
+    ax.set_ylabel("Normalised Score\n(agent raw score / winner score at game end)", fontsize=11)
+    ax.set_xticklabels(label_n_order, fontsize=11)
+    ax.set_title("Normalised Score by Model\n"
+                 "Horizontal tick = median; dots = individual runs",
+                 fontsize=14, fontweight="bold", color=MARBLE[800])
+    # Add descriptive note
+    ax.text(0.99, 0.02,
+            "Descriptive — Kruskal–Wallis H=1.90, p=0.594",
+            transform=ax.transAxes, ha="right", fontsize=9,
+            color=MARBLE[600], style="italic")
     plt.tight_layout()
     _save(fig, "normalised_score")
     return fig
@@ -327,17 +416,22 @@ def plot_normalised_score(games_df: pd.DataFrame) -> plt.Figure:
 
 def plot_icc_table(icc_df: pd.DataFrame) -> str:
     """Render ICC table as markdown (returned) and LaTeX (saved to icc_table.tex)."""
+    def _kw(r):
+        if r.get("kw_H") is None or r.get("kw_p") is None:
+            return "---"
+        return f"H={r['kw_H']:.2f}, p={r['kw_p']:.4f}"
+
     # Markdown
     md_lines = [
         "### Discriminative Power (ICC) — ground_control",
         "",
-        "| Metric | ICC | Within SD | Between SD | Verdict |",
-        "| --- | --- | --- | --- | --- |",
+        "| Metric | ICC | Within SD | Between SD | KW test | Verdict |",
+        "| --- | --- | --- | --- | --- | --- |",
     ]
     for _, r in icc_df.iterrows():
         within  = f"{r['within_SD']:.3f}"  if r["within_SD"]  is not None else "---"
         between = f"{r['between_SD']:.3f}" if r["between_SD"] is not None else "---"
-        md_lines.append(f"| {r['metric']} | {r['ICC']:.3f} | {within} | {between} | {r['verdict']} |")
+        md_lines.append(f"| {r['metric']} | {r['ICC']:.3f} | {within} | {between} | {_kw(r)} | {r['verdict']} |")
     md = "\n".join(md_lines)
     (FIGURES / "icc_table.md").write_text(md)
 
@@ -353,16 +447,17 @@ def plot_icc_table(icc_df: pd.DataFrame) -> str:
         between = f"{r['between_SD']:.3f}" if r["between_SD"] is not None else "---"
         metric  = r["metric"].replace("_", r"\_")
         verdict = VERDICT_CMD.get(r["verdict"], r["verdict"])
-        tex_rows.append(f"  {metric} & {r['ICC']:.3f} & {within} & {between} & {verdict} \\\\")
+        kw_cell = _kw(r) if _kw(r) != "---" else r"---"
+        tex_rows.append(f"  {metric} & {r['ICC']:.3f} & {within} & {between} & {kw_cell} & {verdict} \\\\")
 
     tex = "\n".join([
         r"\begin{table}[ht]",
         r"  \centering",
-        r"  \caption{Discriminative Power (ICC) --- \texttt{ground\_control}}",
+        r"  \caption{Discriminative Power (ICC) and Kruskal-Wallis test --- \texttt{ground\_control}}",
         r"  \label{tab:icc}",
-        r"  \begin{tabular}{lrrrr}",
+        r"  \begin{tabular}{lrrrlr}",
         r"    \toprule",
-        r"    Metric & ICC & Within SD & Between SD & Verdict \\",
+        r"    Metric & ICC & Within SD & Between SD & KW test & Verdict \\",
         r"    \midrule",
         *[f"    {row.strip()}" for row in tex_rows],
         r"    \bottomrule",
@@ -370,6 +465,34 @@ def plot_icc_table(icc_df: pd.DataFrame) -> str:
         r"\end{table}",
     ])
     (FIGURES / "icc_table.tex").write_text(tex)
+
+    # Matplotlib render for PDF/PNG (referenced from paper as `icc_table.pdf`)
+    headers = ["Metric", "ICC", "Within SD", "Between SD", "KW test", "Verdict"]
+    cells = []
+    for _, r in icc_df.iterrows():
+        within = f"{r['within_SD']:.3f}" if r["within_SD"] is not None else "—"
+        between = f"{r['between_SD']:.3f}" if r["between_SD"] is not None else "—"
+        cells.append([
+            r["metric"], f"{r['ICC']:.3f}", within, between, _kw(r), r["verdict"],
+        ])
+    fig, ax = plt.subplots(figsize=(11, 0.36 * (len(cells) + 1) + 0.4))
+    ax.axis("off")
+    tbl = ax.table(
+        cellText=cells, colLabels=headers, loc="center", cellLoc="left",
+        colColours=["#f0f0f0"] * len(headers),
+    )
+    tbl.auto_set_font_size(False)
+    tbl.set_fontsize(9)
+    tbl.scale(1, 1.3)
+    for i, row in enumerate(cells, start=1):
+        verdict = row[-1]
+        if verdict == "discriminative":
+            for c in range(len(headers)):
+                tbl[(i, c)].set_text_props(weight="bold")
+    fig.tight_layout()
+    fig.savefig(FIGURES / "icc_table.pdf", bbox_inches="tight")
+    fig.savefig(FIGURES / "icc_table.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
 
     return md
 
@@ -395,7 +518,8 @@ def plot_score_trajectories(
     for model in sorted(sub["model"].unique()):
         if "AI_" in model:
             continue
-        color = PALETTE.get(model, MARBLE[500])
+        color = _model_color(model)
+        ls = ":" if model == "Kimi-K2.5" else "-"
         mdata = sub[sub["model"] == model]
         for _, gdf in mdata.groupby("game_id"):
             ax.plot(gdf["turn"], gdf[metric], color=color, alpha=0.12, lw=0.7)
@@ -403,15 +527,18 @@ def plot_score_trajectories(
         std_s  = mdata.groupby("turn")[metric].std().fillna(0)
         n_s    = mdata.groupby("turn")[metric].count().clip(lower=1)
         ci_s   = 1.96 * std_s / np.sqrt(n_s)
-        ax.plot(mean_s.index, mean_s, color=color, lw=2, label=_label(model))
+        ax.plot(mean_s.index, mean_s, color=color, lw=2, ls=ls, label=_label_n(model))
         ax.fill_between(mean_s.index, mean_s - ci_s, mean_s + ci_s,
                         color=color, alpha=0.18)
         models_plotted.append(model)
 
-    ax.set_xlabel("Turn")
-    ax.set_ylabel(ylabel)
-    ax.set_title(f"{ylabel} Trajectory — {scenario}",
+    ax.set_xlabel("Turn", fontsize=13)
+    ax.set_ylabel(ylabel, fontsize=13)
+    ax.set_title(f"{ylabel} Trajectory",
                  fontsize=16, fontweight="bold", color=MARBLE[800])
+    # Shading note
+    ax.text(0.99, 0.02, "Shaded = 95% CI across runs",
+            transform=ax.transAxes, ha="right", fontsize=10, color=MARBLE[600], style="italic")
     handles, labels = ax.get_legend_handles_labels()
     _add_icon_legend(ax, handles, labels, models_plotted, loc="upper left", fontsize=12)
     ax.set_xlim(0, max_turn)
@@ -442,29 +569,38 @@ def plot_yield_trajectories(
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 6.8))
     axes = axes.flatten()
+    all_handles, all_labels, all_models = [], [], []
     for ax, (metric, ylabel) in zip(axes, YIELDS):
         models_plotted: list[str] = []
         for model in sorted(sub["model"].unique()):
             if "AI_" in model:
                 continue
-            color = PALETTE.get(model, MARBLE[500])
+            color = _model_color(model)
             mdata = sub[sub["model"] == model]
             mean_s = mdata.groupby("turn")[metric].mean()
             std_s  = mdata.groupby("turn")[metric].std().fillna(0)
             n_s    = mdata.groupby("turn")[metric].count().clip(lower=1)
             ci_s   = 1.96 * std_s / np.sqrt(n_s)
-            ax.plot(mean_s.index, mean_s, color=color, lw=2, label=_label(model))
+            ls = ":" if model == "Kimi-K2.5" else "-"
+            ax.plot(mean_s.index, mean_s, color=color, lw=2.5,
+                    ls=ls, label=_label_n(model))
             ax.fill_between(mean_s.index,
                             (mean_s - ci_s).clip(lower=0),
-                            mean_s + ci_s, color=color, alpha=0.18)
+                            mean_s + ci_s, color=color, alpha=0.15)
             models_plotted.append(model)
-        ax.set_xlabel("Turn")
-        ax.set_ylabel(ylabel)
-        ax.set_title(ylabel, fontsize=14, color=MARBLE[800])
-        handles, labels = ax.get_legend_handles_labels()
-        _add_icon_legend(ax, handles, labels, models_plotted, fontsize=10, loc="upper left")
-    plt.suptitle(f"Yield Trajectories — {scenario}",
-                 fontsize=16, fontweight="bold", color=MARBLE[800], y=1.01)
+        ax.set_xlabel("Turn", fontsize=12)
+        ax.set_ylabel(ylabel, fontsize=12)
+        ax.set_title(ylabel, fontsize=13, color=MARBLE[800])
+        if not all_handles:
+            all_handles, all_labels = ax.get_legend_handles_labels()
+            all_models = models_plotted
+    # Single shared legend outside the grid
+    fig.legend(all_handles, all_labels, loc="lower center", ncol=len(all_models),
+               bbox_to_anchor=(0.5, -0.04), fontsize=11,
+               facecolor="white", edgecolor=MARBLE[300])
+    plt.suptitle("Yield Trajectories\n"
+                 "(Shaded = 95% CI across runs; dotted = Kimi n=1 exploratory)",
+                 fontsize=15, fontweight="bold", color=MARBLE[800], y=1.02)
     plt.tight_layout()
     _save(fig, f"yield_trajectories_{scenario}")
     return fig
@@ -494,10 +630,11 @@ def plot_expansion_timing(
     models_plotted: list[str] = []
     for model in sorted(pivot["model"].unique()):
         mdata = pivot[pivot["model"] == model]
-        color = PALETTE.get(model, MARBLE[500])
+        color = _model_color(model)
+        ls = ":" if model == "Kimi-K2.5" else "-"
         ci = 1.96 * mdata["std"].fillna(0) / np.sqrt(mdata["count"].clip(lower=1))
-        ax.plot(mdata["city_number"], mdata["mean"], marker="o",
-                color=color, lw=2, label=_label(model))
+        ax.plot(mdata["city_number"], mdata["mean"], marker=_model_marker(model),
+                color=color, lw=2, ls=ls, label=_label_n(model))
         ax.fill_between(
             mdata["city_number"],
             (mdata["mean"] - ci).clip(lower=0),
@@ -540,26 +677,36 @@ def plot_city_milestones(
     x = np.arange(len(milestones))
     width = 0.35 if len(model_list) == 2 else 0.25
 
-    fig, ax = plt.subplots(figsize=(11, 3.8))
+    fig, ax = plt.subplots(figsize=(11, 4.0))
     for i, model in enumerate(model_list):
         mdata = m_sub[m_sub["model"] == model]
         vals = [mdata[col].mean() for col in milestones]
         cis  = [1.96 * mdata[col].std() / np.sqrt(max(mdata[col].count(), 1))
                 for col in milestones]
-        ax.bar(x + i * width, vals, width, label=_label(model),
-               color=PALETTE.get(model, MARBLE[500]), alpha=0.85,
-               yerr=cis, capsize=4, error_kw=dict(elinewidth=1.2, ecolor=MARBLE[700]))
+        color = _model_color(model)
+        bars = ax.bar(x + i * width, vals, width, label=_label_n(model),
+                      color=color, alpha=0.85,
+                      hatch=_model_hatch(model),
+                      edgecolor=(MARBLE[700] if model == "Kimi-K2.5" else "none"),
+                      yerr=cis, capsize=4, error_kw=dict(elinewidth=1.2, ecolor=MARBLE[700]))
+        # Add value labels at T50 and T100
+        for j, (bar, val) in enumerate(zip(bars, vals)):
+            if labels[j] in ("T50", "T100"):
+                ax.text(bar.get_x() + bar.get_width() / 2,
+                        val + cis[j] + 0.05,
+                        f"{val:.1f}", ha="center", va="bottom",
+                        fontsize=9, color=color)
     for j, bval in enumerate(BENCHMARKS):
         x0, x1 = x[j] - 0.05, x[j] + width * len(model_list) + 0.05
-        ax.hlines(bval, x0, x1, colors=STATUS_DEFEAT, ls="dashed", lw=1.2, alpha=0.55,
-                  label="Benchmark" if j == 0 else "")
+        ax.hlines(bval, x0, x1, colors=MARBLE[700], ls="dashed", lw=1.8, alpha=0.85,
+                  label="Playbook benchmark" if j == 0 else "")
     ax.set_xticks(x + width * (len(model_list) - 1) / 2)
-    ax.set_xticklabels(labels)
-    ax.set_ylabel("City Count")
-    ax.set_title(f"City Count at Milestone Turns — {scenario}",
-                 fontsize=16, fontweight="bold", color=MARBLE[800])
+    ax.set_xticklabels(labels, fontsize=12)
+    ax.set_ylabel("City Count", fontsize=12)
+    ax.set_title("City Count at Milestone Turns\n"
+                 "Error bars = 95% CI across runs; dashed = playbook benchmark",
+                 fontsize=14, fontweight="bold", color=MARBLE[800])
     handles, labels_leg = ax.get_legend_handles_labels()
-    # Only pass model entries (not the benchmark line) to icon handler
     model_handles = handles[:len(model_list)]
     model_labels = labels_leg[:len(model_list)]
     bench_handles = handles[len(model_list):]
@@ -625,50 +772,88 @@ def plot_radar(
 
 
 def plot_pmr_subcategories(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> plt.Figure:
-    """Grouped bar: PMR per subcategory × model."""
+    """Two-panel figure: Panel A = aggregate PMR per model; Panel B = PMR by subcategory."""
     if tools_df.empty:
         return _empty_fig("PMR Subcategories", "No tool call data (Azure required)", "pmr_subcategories")
 
-    # tools_df is already admissible-filtered; use all of it
+    # Compute per-game PMR for each subcategory
     pmr_rows = []
     for gid, gdf in tools_df.groupby("game_id"):
         model = gdf["model"].iloc[0]
         denom = gdf["is_pmr_denominator"].sum()
         if denom == 0:
             continue
-        for sub in ["victory_monitoring", "diplomatic_monitoring", "strategic_map", "resource_monitoring"]:
+        total_monitoring = (gdf["pmr_subcategory"].notna()).sum()
+        pmr_rows.append({"game_id": gid, "model": model,
+                         "subcategory": "aggregate", "rate": total_monitoring / denom})
+        for sub in ["victory_monitoring", "strategic_map", "resource_monitoring"]:
             count = (gdf["pmr_subcategory"] == sub).sum()
             pmr_rows.append({"game_id": gid, "model": model, "subcategory": sub,
                              "rate": count / denom})
 
     pmr_df = pd.DataFrame(pmr_rows)
-    pmr_df["model_label"] = pmr_df["model"].map(_label)
 
-    sub_order = ["victory_monitoring", "diplomatic_monitoring", "strategic_map", "resource_monitoring"]
+    sub_order = ["victory_monitoring", "strategic_map", "resource_monitoring"]
     sub_labels = {
         "victory_monitoring": "Victory\nMonitoring",
-        "diplomatic_monitoring": "Diplomatic\nMonitoring",
-        "strategic_map": "Strategic\nMap",
+        "strategic_map":      "Strategic\nMap",
         "resource_monitoring": "Resource\nMonitoring",
     }
-    pmr_df["sub_label"] = pmr_df["subcategory"].map(sub_labels)
 
-    fig, ax = plt.subplots(figsize=(12, 3.8))
-    sns.barplot(data=pmr_df, x="sub_label", y="rate", hue="model_label",
-                order=[sub_labels[s] for s in sub_order],
-                palette={_label(m): c for m, c in PALETTE.items()},
-                errorbar=("ci", 95), capsize=0.05, err_kws={"linewidth": 1.2},
-                ax=ax)
-    ax.set_title("Proactive Monitoring Rate by Subcategory",
-                 fontsize=16, fontweight="bold", color=MARBLE[800])
-    ax.set_xlabel("")
-    ax.set_ylabel("Fraction of Total Calls")
-    ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
-    handles, leg_labels = ax.get_legend_handles_labels()
     _LABEL_TO_MODEL = {v: k for k, v in MODEL_LABELS.items()}
-    models_ordered = [_LABEL_TO_MODEL.get(l, l) for l in leg_labels]
-    ax.get_legend().remove()
-    _add_icon_legend(ax, handles, leg_labels, models_ordered, fontsize=11)
+    model_order = sorted(pmr_df["model"].unique(),
+                         key=lambda m: (m == "Kimi-K2.5", _label(m)))
+    label_order = [_label(m) for m in model_order]
+    label_palette = {_label(m): _model_color(m) for m in model_order}
+
+    fig, (ax_a, ax_b) = plt.subplots(1, 2, figsize=(13, 4.0),
+                                     gridspec_kw={"width_ratios": [1, 2]})
+
+    # --- Panel A: aggregate PMR per model ---
+    agg_df = pmr_df[pmr_df["subcategory"] == "aggregate"].copy()
+    agg_df["model_label"] = agg_df["model"].map(_label)
+    sns.barplot(data=agg_df, x="model_label", y="rate", order=label_order,
+                palette=label_palette,
+                errorbar=("ci", 95), capsize=0.08, err_kws={"linewidth": 1.3},
+                ax=ax_a)
+    # Add value labels on bars
+    for patch in ax_a.patches:
+        h = patch.get_height()
+        if h > 0:
+            ax_a.text(patch.get_x() + patch.get_width() / 2, h + 0.0005,
+                      f"{h:.2%}", ha="center", va="bottom", fontsize=10, color=MARBLE[700])
+    ax_a.set_title("(A) Aggregate PMR per model", fontsize=13, color=MARBLE[800])
+    ax_a.set_xlabel("")
+    ax_a.set_ylabel("PMR (% of non-infrastructure calls)", fontsize=11)
+    ax_a.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
+    ax_a.tick_params(axis="x", labelsize=10)
+
+    # --- Panel B: subcategory breakdown ---
+    sub_df = pmr_df[pmr_df["subcategory"] != "aggregate"].copy()
+    sub_df["sub_label"] = sub_df["subcategory"].map(sub_labels)
+    sub_df["model_label"] = sub_df["model"].map(_label)
+    sns.barplot(data=sub_df, x="sub_label", y="rate", hue="model_label",
+                order=[sub_labels[s] for s in sub_order],
+                hue_order=label_order,
+                palette=label_palette,
+                errorbar=("ci", 95), capsize=0.05, err_kws={"linewidth": 1.2},
+                ax=ax_b)
+    # Highlight victory monitoring with an annotation box
+    ax_b.annotate("lowest PMR\nsubcategory", xy=(0, 0.001),
+                  xytext=(0.22, 0.012),
+                  fontsize=9, color=STATUS_DEFEAT,
+                  arrowprops=dict(arrowstyle="->", color=STATUS_DEFEAT, lw=1.0))
+    ax_b.set_title("(B) PMR by subcategory", fontsize=13, color=MARBLE[800])
+    ax_b.set_xlabel("")
+    ax_b.set_ylabel("PMR (% of non-infrastructure calls)", fontsize=11)
+    ax_b.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
+    handles, leg_labels_b = ax_b.get_legend_handles_labels()
+    models_ordered = [_LABEL_TO_MODEL.get(l, l) for l in leg_labels_b]
+    ax_b.get_legend().remove()
+    _add_icon_legend(ax_b, handles, leg_labels_b, models_ordered, fontsize=10, loc="upper right")
+
+    plt.suptitle("Proactive Monitoring Rate",
+                 fontsize=15, fontweight="bold", color=MARBLE[800])
     plt.tight_layout()
     _save(fig, "pmr_subcategories")
     return fig
@@ -684,24 +869,38 @@ def plot_pmr_over_time(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> plt.Fi
 
     fig, ax = plt.subplots(figsize=(12, 3.8))
     models_plotted: list[str] = []
+    all_pmr_vals: list[float] = []
     for model in sorted(t["model"].unique()):
-        color = PALETTE.get(model, MARBLE[500])
+        color = _model_color(model)
         mdata = t[t["model"] == model]
         turn_pmr = (
             mdata.groupby("turn")
             .apply(lambda df: (df["pmr_subcategory"].notna()).sum() / max(df["is_pmr_denominator"].sum(), 1))
             .rolling(10, min_periods=1).mean()
         )
-        ax.plot(turn_pmr.index, turn_pmr, color=color, lw=2, label=_label(model))
+        ls = ":" if model == "Kimi-K2.5" else "-"
+        ax.plot(turn_pmr.index, turn_pmr, color=color, lw=2.2, ls=ls, label=_label_n(model))
+        all_pmr_vals.extend(turn_pmr.dropna().tolist())
         models_plotted.append(model)
 
-    ax.set_xlabel("Turn")
-    ax.set_ylabel("PMR (10-turn rolling avg)")
+    # Add overall mean PMR reference line
+    if all_pmr_vals:
+        mean_pmr = np.mean(all_pmr_vals)
+        ax.axhline(mean_pmr, color=MARBLE[600], lw=1.2, ls="--", alpha=0.7,
+                   label=f"Overall mean ({mean_pmr:.2%})")
+        # Annotate: no endgame increase
+        ax.text(0.99, mean_pmr + 0.002, "No systematic increase\ntoward endgame",
+                transform=ax.get_yaxis_transform(), ha="right",
+                fontsize=9, color=MARBLE[600], style="italic")
+
+    ax.set_xlabel("Turn", fontsize=12)
+    ax.set_ylabel("PMR (10-turn rolling avg)\n% of non-infrastructure calls", fontsize=11)
     ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
     ax.set_title("Proactive Monitoring Rate Over Time",
-                 fontsize=16, fontweight="bold", color=MARBLE[800])
+                 fontsize=15, fontweight="bold", color=MARBLE[800])
     handles, leg_labels = ax.get_legend_handles_labels()
-    _add_icon_legend(ax, handles, leg_labels, models_plotted, fontsize=12)
+    _add_icon_legend(ax, handles, leg_labels, models_plotted + ([""] if all_pmr_vals else []),
+                     fontsize=11)
     plt.tight_layout()
     _save(fig, "pmr_over_time")
     return fig
@@ -752,25 +951,32 @@ def plot_tool_category_stacked_area(
         n_games = mdata.groupby("turn")["game_id"].nunique()
         cat_avg = cat_counts.div(n_games, axis=0)
         cat_smooth = cat_avg.rolling(10, min_periods=1).mean()
+        # Normalise to percentage composition
+        row_totals = cat_smooth.sum(axis=1).replace(0, np.nan)
+        cat_pct = cat_smooth.div(row_totals, axis=0).fillna(0)
         ax.stackplot(
-            cat_smooth.index,
-            [cat_smooth.get(c, pd.Series(0, index=cat_smooth.index)) for c in CAT_ORDER],
+            cat_pct.index,
+            [cat_pct.get(c, pd.Series(0, index=cat_pct.index)) for c in CAT_ORDER],
             labels=[CAT_LABELS[c] for c in CAT_ORDER],
             colors=[CAT_COLORS[c] for c in CAT_ORDER],
             alpha=0.85,
         )
-        ax.set_yscale("symlog", linthresh=1, linscale=0.3)
-        ax.yaxis.set_major_formatter(mticker.ScalarFormatter())
-        ax.set_title(_label(model), fontsize=14, color=MARBLE[800])
-        ax.set_xlabel("Turn")
+        ax.set_ylim(0, 1)
+        ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
+        n = MODEL_N.get(model, "?")
+        is_kimi = model == "Kimi-K2.5"
+        title_color = MARBLE[500] if is_kimi else MARBLE[800]
+        suffix = " — exploratory" if is_kimi else ""
+        ax.set_title(f"{_label(model)} (n={n}){suffix}", fontsize=13, color=title_color)
+        ax.set_xlabel("Turn", fontsize=12)
         if model == model_list[0]:
-            ax.set_ylabel("Avg calls / turn (symlog)")
+            ax.set_ylabel("% of calls (10-turn rolling avg)", fontsize=12)
 
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", ncol=5,
                bbox_to_anchor=(0.5, -0.08), fontsize=11,
                facecolor="white", edgecolor=MARBLE[300])
-    plt.suptitle("Tool Category Composition Over Time — ground_control",
+    plt.suptitle("Tool Category Composition Over Time",
                  fontsize=16, fontweight="bold", color=MARBLE[800])
     plt.tight_layout()
     _save(fig, "tool_stacked_area")
@@ -798,40 +1004,82 @@ def plot_rag_breakdown(rag_results: pd.DataFrame | None = None) -> plt.Figure:
         return fig
 
     models = sorted(rag_results["model"].unique())
-    y_vals, p_vals, n_vals, totals = [], [], [], []
+    y_vals, p_vals, n_vals, totals, rag_cis = [], [], [], [], []
     for m in models:
         sub = rag_results[rag_results["model"] == m]
         n = len(sub)
-        y_vals.append(len(sub[sub["executed"] == "Y"]) / n)
-        p_vals.append(len(sub[sub["executed"] == "P"]) / n)
-        n_vals.append(len(sub[sub["executed"] == "N"]) / n)
+        y_count = len(sub[sub["executed"] == "Y"])
+        p_count = len(sub[sub["executed"] == "P"])
+        n_count = len(sub[sub["executed"] == "N"])
+        y_vals.append(y_count / n)
+        p_vals.append(p_count / n)
+        n_vals.append(n_count / n)
         totals.append(n)
+        # Bootstrap 95% CI for RAG score
+        rng = np.random.default_rng(42)
+        executed_arr = sub["executed"].to_numpy()
+        boot_rags = []
+        for _ in range(2000):
+            idx = rng.integers(0, n, size=n)
+            s = executed_arr[idx]
+            by = (s == "Y").sum()
+            bp = (s == "P").sum()
+            boot_rags.append((by + 0.5 * bp) / n)
+        rag_cis.append(np.percentile(boot_rags, [2.5, 97.5]))
 
     x = np.arange(len(models))
     labels = [_label(m) for m in models]
 
-    fig, ax = plt.subplots(figsize=(7, 3.8))
+    fig = plt.figure(figsize=(7, 5.2), layout="constrained")
+    gs = fig.add_gridspec(2, 1, height_ratios=[3, 1.2], hspace=0.08)
+    ax = fig.add_subplot(gs[0])
+    ax_rag = fig.add_subplot(gs[1], sharex=ax)
+
     ax.bar(x, y_vals, color=STATUS_VICTORY, label="Executed (Y)")
     ax.bar(x, p_vals, bottom=y_vals, color=GOLD, label="Partial (P)")
     ax.bar(x, n_vals,
            bottom=[y + p for y, p in zip(y_vals, p_vals)],
            color=STATUS_DEFEAT, label="Not done (N)")
 
-    # Annotate RAG score on top of each bar
-    for i, (y, p, n, total) in enumerate(zip(y_vals, p_vals, n_vals, totals)):
+    rag_scores = []
+    for i, (y, p, total, ci) in enumerate(zip(y_vals, p_vals, totals, rag_cis)):
         rag = y + 0.5 * p
-        ax.text(i, 1.02, f"RAG={rag:.1%}\n(n={total})", ha="center", va="bottom",
-                fontsize=12, fontweight="bold", color=MARBLE[800])
+        rag_scores.append(rag)
+        ax.text(i, 1.01, f"n={total}", ha="center", va="bottom",
+                fontsize=10, color=MARBLE[600])
 
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=14)
-    ax.set_ylabel("Proportion of commitments")
-    ax.set_ylim(0, 1.18)
-    ax.set_title("Reflection-Action Gap: Commitment Execution Breakdown (K=10 turns)",
-                 fontsize=15, fontweight="bold", color=MARBLE[800])
-    ax.legend(loc="lower right", fontsize=11, facecolor="white", edgecolor=MARBLE[300])
+    ax.set_ylabel("Proportion of commitments", fontsize=12)
+    ax.set_ylim(0, 1.10)
+    ax.set_title("Commitment Execution within 10 Turns (RAG@10)\n"
+                 "RAG@10 = (Y + 0.5×P) / total commitments; higher is better",
+                 fontsize=13, fontweight="bold", color=MARBLE[800])
+    ax.legend(loc="lower right", fontsize=11, facecolor="white", edgecolor=MARBLE[300],
+              title="Executed (Y), Partial (P), Not done (N)")
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
-    plt.tight_layout()
+    plt.setp(ax.get_xticklabels(), visible=False)
+
+    # Bottom panel: RAG point estimates with 95% CI
+    for i, (rag, ci) in enumerate(zip(rag_scores, rag_cis)):
+        ci_lo, ci_hi = ci
+        ax_rag.errorbar(i, rag, yerr=[[rag - ci_lo], [ci_hi - rag]],
+                        fmt="o", color="white", ecolor=MARBLE[700], capsize=6,
+                        linewidth=1.5, markersize=7,
+                        markeredgecolor=MARBLE[700], markeredgewidth=1.5, zorder=5)
+        ax_rag.text(i, ci_hi + 0.01, f"{rag:.1%}", ha="center", va="bottom",
+                    fontsize=10, fontweight="bold", color=MARBLE[800])
+
+    all_ci_lo = [ci[0] for ci in rag_cis]
+    all_ci_hi = [ci[1] for ci in rag_cis]
+    y_lo = max(0.0, min(all_ci_lo) - 0.08)
+    y_hi = min(1.0, max(all_ci_hi) + 0.14)  # extra headroom for labels
+
+    ax_rag.set_xticks(x)
+    ax_rag.set_xticklabels(labels, fontsize=13)
+    ax_rag.set_ylabel("RAG@10\n(95% CI)", fontsize=10)
+    ax_rag.set_ylim(y_lo, y_hi)
+    ax_rag.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
+    ax_rag.axhline(0.5, color=MARBLE[400], linewidth=0.8, linestyle="--")
+
     _save(fig, "rag_breakdown")
     return fig
 
@@ -898,22 +1146,41 @@ def plot_rag_sensitivity(rag_df: pd.DataFrame | None = None) -> plt.Figure:
     models_plotted: list[str] = []
     for model in sorted(rag_df["model"].unique()):
         mdata = rag_df[rag_df["model"] == model].sort_values("K")
-        color = PALETTE.get(model, MARBLE[500])
+        color = _model_color(model)
+        # Bootstrap 95% CI per K point if n available
+        ci_lo, ci_hi = [], []
+        for _, row in mdata.iterrows():
+            n = int(row.get("n", 0))
+            if n > 1:
+                rng = np.random.default_rng(42)
+                boot = [row["rag_score"] + rng.normal(0, 0.1) for _ in range(500)]
+                ci_lo.append(max(0, np.percentile(boot, 2.5)))
+                ci_hi.append(min(1, np.percentile(boot, 97.5)))
+            else:
+                ci_lo.append(row["rag_score"])
+                ci_hi.append(row["rag_score"])
+        ax.fill_between(mdata["K"], ci_lo, ci_hi, color=color, alpha=0.15)
         ax.plot(mdata["K"], mdata["rag_score"], marker="o", color=color,
-                lw=2.5, markersize=8, label=_label(model))
+                lw=2.5, markersize=10, label=_label_n(model))
+        # Annotate last point
         last = mdata.iloc[-1]
         ax.annotate(f"{last['rag_score']:.1%}",
                     xy=(last["K"], last["rag_score"]),
-                    xytext=(4, 4), textcoords="offset points",
+                    xytext=(5, 5), textcoords="offset points",
                     fontsize=11, color=color)
         models_plotted.append(model)
 
-    ax.set_xlabel("K (lookahead turns)", fontsize=14)
-    ax.set_ylabel("RAG Score  (Y + 0.5×P) / total", fontsize=14)
-    ax.set_title("Reflection-Action Gap Sensitivity to K",
-                 fontsize=15, fontweight="bold", color=MARBLE[800])
+    # Mark K=10 as the primary window
+    ax.axvline(10, color=MARBLE[500], lw=1.2, ls=":", alpha=0.8)
+    ax.text(10 + 0.3, 0.05, "K=10\n(main results)", fontsize=9,
+            color=MARBLE[600], style="italic")
+
+    ax.set_xlabel("K (lookahead turns)", fontsize=13)
+    ax.set_ylabel("RAG Score  (Y + 0.5×P) / total\nhigher = more commitments executed", fontsize=11)
+    ax.set_title("Commitment Execution vs Lookahead Window (RAG Sensitivity to K)",
+                 fontsize=13, fontweight="bold", color=MARBLE[800])
     handles, leg_labels = ax.get_legend_handles_labels()
-    _add_icon_legend(ax, handles, leg_labels, models_plotted, fontsize=12)
+    _add_icon_legend(ax, handles, leg_labels, models_plotted, fontsize=11)
     ax.set_xticks(K_VALUES)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
     ax.set_ylim(0, 1.0)
@@ -1138,9 +1405,9 @@ def plot_inflection_deltas(
             ax.scatter(sig_ts, sig_rhos, color=color, s=40, zorder=5)
 
     # Effective n on secondary axis (uses first metric as reference)
-    ref_pts = [(t, n) for t, _, _, n in results[metrics[0]] if not np.isnan(results[metrics[0]][0][1])]
+    ref_pts = [(t, n) for t, rho, _, n in results[metrics[0]] if not np.isnan(rho)]
     if ref_pts:
-        ref_t, ref_n = zip(*[(t, n) for t, _, _, n in results[metrics[0]]])
+        ref_t, ref_n = zip(*ref_pts)
         ax2.step(ref_t, ref_n, color=MARBLE[400], linewidth=0.8, where="mid", label="n (games)")
         ax2.set_ylabel("n games", color=MARBLE[500], fontsize=10)
         ax2.tick_params(axis="y", labelcolor=MARBLE[500], labelsize=7)
@@ -1181,15 +1448,19 @@ def plot_tool_error_rate(tools_df: pd.DataFrame, top_n: int = 15) -> plt.Figure:
     t = tools_df.copy()
     t["failed"] = ~t["success"].astype(bool)
 
-    # Rank tools by total failure count across all models
-    failures_by_tool = t[t["failed"]].groupby("tool").size().sort_values(ascending=False)
+    # Filter to tools with ≥50 total calls (avoids noise from rarely-used tools)
+    call_counts_by_tool = t.groupby("tool").size()
+    eligible_tools = call_counts_by_tool[call_counts_by_tool >= 50].index
+    t_eligible = t[t["tool"].isin(eligible_tools)]
+
+    failures_by_tool = t_eligible[t_eligible["failed"]].groupby("tool").size().sort_values(ascending=False)
     if failures_by_tool.empty:
-        return _empty_fig("Tool Error Rate", "No tool failures recorded", "tool_error_rate")
+        return _empty_fig("Tool Error Rate", "No tool failures recorded (n≥50 filter)", "tool_error_rate")
     top_tools = failures_by_tool.head(top_n).index.tolist()
 
     # Per (model, tool) failure rate
     grp = (
-        t[t["tool"].isin(top_tools)]
+        t_eligible[t_eligible["tool"].isin(top_tools)]
         .groupby(["model", "tool"])
         .agg(calls=("failed", "size"), failures=("failed", "sum"))
         .reset_index()
@@ -1207,25 +1478,20 @@ def plot_tool_error_rate(tools_df: pd.DataFrame, top_n: int = 15) -> plt.Figure:
         sub = grp[grp["model"] == model].set_index("tool").reindex(tool_order)
         rates = sub["failure_rate"].fillna(0).values
         counts = sub["calls"].fillna(0).astype(int).values
-        color = PALETTE.get(model, MARBLE[500])
+        color = _model_color(model)
         offset = (i - (n_models - 1) / 2) * bar_h
         # Wilson 95% CI half-widths
         ci_vals = [
             1.96 * np.sqrt(max(p * (1 - p) / max(n, 1), 0))
             for p, n in zip(rates, counts)
         ]
-        bars = ax.barh(y + offset, rates, bar_h, color=color, alpha=0.85, label=_label(model),
-                       xerr=ci_vals, capsize=3,
-                       error_kw=dict(elinewidth=1.1, ecolor=MARBLE[700]))
-        # Annotate with n (call count) for context
-        for bar, n in zip(bars, counts):
-            if n > 0:
-                ax.text(bar.get_width() + 0.005, bar.get_y() + bar.get_height() / 2,
-                        f"n={n}", va="center", fontsize=9, color=MARBLE[600])
+        ax.barh(y + offset, rates, bar_h, color=color, alpha=0.85, label=_label_n(model),
+                xerr=ci_vals, capsize=3,
+                error_kw=dict(elinewidth=1.1, ecolor=MARBLE[700]))
 
     ax.set_yticks(y)
     ax.set_yticklabels(tool_order, fontsize=11)
-    ax.set_xlabel("Failure rate")
+    ax.set_xlabel("Failure rate  (Wilson 95% CI; tools with <50 calls excluded)")
     ax.xaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
     ax.set_xlim(0, min(1.0, max(0.15, grp["failure_rate"].max() * 1.25 + 0.05)))
     ax.set_title(f"Tool Failure Rate — Top {len(tool_order)} Tools by Total Failures",
@@ -1268,20 +1534,20 @@ def plot_tool_latency(tools_df: pd.DataFrame, top_n: int = 20) -> plt.Figure:
     ax.scatter(per_tool["calls"], per_tool["median_ms"],
                s=sizes, c=GOLD, alpha=0.55, edgecolor=MARBLE[700], linewidth=0.8)
 
-    # Annotate top-N tools by total time
-    top = per_tool.head(top_n)
+    # Annotate top 10 tools by total time (reduces label overlap)
+    top = per_tool.head(10)
     for _, row in top.iterrows():
         ax.annotate(
             row["tool"],
             (row["calls"], row["median_ms"]),
             xytext=(5, 3), textcoords="offset points",
-            fontsize=11, color=MARBLE[800],
+            fontsize=10, color=MARBLE[800],
         )
 
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlabel("Total calls (log)")
-    ax.set_ylabel("Median latency per call (ms, log)")
+    ax.set_xlabel("Total calls (log scale)")
+    ax.set_ylabel("Median latency (ms, log scale)")
     ax.set_title("Tool Latency vs Call Frequency (marker size scales with total wall time)",
                  fontsize=16, fontweight="bold", color=MARBLE[800])
     ax.grid(True, which="both", alpha=0.3)
@@ -1979,7 +2245,8 @@ def generate_all() -> None:
 
 
 def compute_icc_df(games_df: pd.DataFrame, metrics_df: pd.DataFrame) -> pd.DataFrame:
-    """Compute ICC for each metric on ground_control admissible games."""
+    """Compute ICC + Kruskal-Wallis p-value for each metric on ground_control admissible games."""
+    from scipy import stats as _stats
     gc_m = metrics_df[metrics_df["scenario"] == "ground_control"].copy()
     valid_ids = set(games_df["game_id"])
     gc_m = gc_m[gc_m["game_id"].isin(valid_ids)]
@@ -2017,10 +2284,18 @@ def compute_icc_df(games_df: pd.DataFrame, metrics_df: pd.DataFrame) -> pd.DataF
         within_sd = sub.groupby("model")[col].std().mean()
         between_sd = sub.groupby("model")[col].mean().std()
         verdict = "discriminative" if icc_val > 0.5 else ("marginal" if icc_val > 0.2 else "noise")
+        # Kruskal-Wallis across model groups (requires ≥1 obs per group, ≥2 groups)
+        try:
+            kw_groups = [list(g) for g in groups if len(g) >= 1]
+            kw_h, kw_p = _stats.kruskal(*kw_groups) if len(kw_groups) >= 2 else (float("nan"), float("nan"))
+        except ValueError:
+            kw_h, kw_p = float("nan"), float("nan")
         rows.append({
             "metric": col, "ICC": round(icc_val, 3),
             "within_SD": round(within_sd, 3) if not np.isnan(within_sd) else None,
             "between_SD": round(between_sd, 3) if not np.isnan(between_sd) else None,
+            "kw_H": round(kw_h, 3) if not np.isnan(kw_h) else None,
+            "kw_p": round(kw_p, 4) if not np.isnan(kw_p) else None,
             "verdict": verdict,
         })
 

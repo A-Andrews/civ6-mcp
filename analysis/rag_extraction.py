@@ -36,7 +36,10 @@ CACHE_DIR.mkdir(exist_ok=True)
 
 SHEET_PATH = ROOT / "analysis" / "rag_labeling_sheet.csv"
 
-# 25 turns, stratified: 3 per ground_control game (early/mid/late), 1-2 per snowflake
+# Stratified sample: 3 per ground_control game (early/mid/late), 1-2 per snowflake.
+# Last refreshed 2026-05-01: 35 turns across 13 admissible games (added 3 turns
+# from gilded-teal-relic-32 / gpt-5.4 GC). Including the new game shifted GPT
+# RAG@10 from 69.8% → 63.2% (15 new commitments: 5Y/2P/8N).
 SAMPLE_PLAN = {
     # (run_id, turn)
     # Claude GC — 3 games × 3 turns
@@ -78,6 +81,9 @@ SAMPLE_PLAN = {
         ("flint-olive-phalanx-07", 150),
         ("fierce-umber-garrison-15", 140),
         ("fierce-umber-garrison-15", 230),
+        ("gilded-teal-relic-32", 30),
+        ("gilded-teal-relic-32", 120),
+        ("gilded-teal-relic-32", 220),
     ],
     # GPT snowflake — 2 games × 2 turns
     "gpt-5.4-sf": [
@@ -318,7 +324,7 @@ def summarise_tools(run_id: str, from_turn: int, k: int = 10) -> str:
     ]
 
     if not window:
-        result = "(no notable actions in next 10 turns)"
+        result = f"(no notable actions in next {k} turns)"
         cache_path.write_text(result)
         return result
 
@@ -536,8 +542,14 @@ def run_auto_rag(api_key: str, k: int = 10) -> dict:
     return scores
 
 
-def compute_agreement(sheet_path: Path = SHEET_PATH) -> dict:
-    """Compare human 'executed' labels against auto-match. Compute Cohen's κ."""
+def compute_agreement(sheet_path: Path = ROOT / "analysis" / "rag_auto_results.csv") -> dict:
+    """Compare human-validated 'executed' labels against auto-match.
+
+    Expects rag_auto_results.csv (from run_auto_rag) with two human-added columns:
+      commitment_correct: Y/N — was the auto-extracted commitment text correct?
+      executed:           Y/P/N — human judgment of whether it was executed
+                          (overwrite the auto-assigned value for spot-check rows)
+    """
     import csv
     import numpy as np
 
@@ -550,7 +562,7 @@ def compute_agreement(sheet_path: Path = SHEET_PATH) -> dict:
         r for r in rows
         if r["commitment_correct"].strip().upper() in ("Y", "N")
         and r["executed"].strip().upper() in ("Y", "N", "P")
-        and r["haiku_commitment"] != "(none extracted)"
+        and r["commitment"] != "(none extracted)"
     ]
 
     if not labeled:
@@ -562,15 +574,19 @@ def compute_agreement(sheet_path: Path = SHEET_PATH) -> dict:
     extraction_acc = correct / len(labeled)
 
     # Execution rate (human labels, correct commitments only)
+    # Uses same formula as RAG score: (Y + 0.5*P) / n
     valid = [r for r in labeled if r["commitment_correct"].strip().upper() == "Y"]
-    executed_human = [1 if r["executed"].strip().upper() == "Y" else 0 for r in valid]
+    def _rag_val(label: str) -> float:
+        u = label.strip().upper()
+        return 1.0 if u == "Y" else (0.5 if u == "P" else 0.0)
+    executed_human = [_rag_val(r["executed"]) for r in valid]
     execution_rate = np.mean(executed_human) if valid else float("nan")
 
     # By model
     by_model = {}
     for model in set(r["model"] for r in valid):
         m_rows = [r for r in valid if r["model"] == model]
-        m_exec = [1 if r["executed"].strip().upper() == "Y" else 0 for r in m_rows]
+        m_exec = [_rag_val(r["executed"]) for r in m_rows]
         by_model[model] = {"n": len(m_rows), "execution_rate": np.mean(m_exec)}
 
     print(f"Labeled rows: {len(labeled)}")
