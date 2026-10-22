@@ -177,6 +177,25 @@ ADMISSIBLE_GAMES: list[dict] = [
         "end_condition": "defeat",
         "notes": "AI Technology victory (Japan/Hojo Tokimune)",
     },
+    {
+        "run_id": "gilded-teal-relic-32",
+        "model": "gpt-5.4",
+        "scenario": "ground_control",
+        "final_turn": 237,
+        "end_condition": "defeat",
+        "notes": "AI Culture victory (Japan/Hojo Tokimune)",
+    },
+    # ------------------------------------------------------------------ #
+    # Kimi-K2.5 — Ground Control
+    # ------------------------------------------------------------------ #
+    {
+        "run_id": "rusted-indigo-oracle-11",
+        "model": "Kimi-K2.5",
+        "scenario": "ground_control",
+        "final_turn": 219,
+        "end_condition": "defeat",
+        "notes": "AI Culture victory (Japan/Hojo Tokimune)",
+    },
     # ------------------------------------------------------------------ #
     # GPT-5.4 — Snowflake
     # ------------------------------------------------------------------ #

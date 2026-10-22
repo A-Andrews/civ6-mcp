@@ -1,0 +1,51 @@
+id,run_id,model,turn,commitment,evidence,auto_label,human_label
+1,celestial-ochre-monument-04,gpt-5.4,200,Keep Sangju on Builder,T+1: set_city_production(Builder) → PRODUCING|UNIT_BUILDER|6 turns; T+3: set_city_production(Builder) → PRODUCING|UNIT_BUILDER|8 turns,Y,Y
+2,volcanic-vermil-ember-37,gemini-3.1-pro-preview,150,"Finish builder tasks (Quarries, Mines, Farms, Repairs)","Multiple unit_action(improve) and unit_action(repair) calls across T+1-T+9 for mines, farms, pastures, lumber mills, oil wells",Y,Y
+3,wandering-carmine-ballista-57,claude-opus-4-6,30,Build Malgium Builder in ~10 turns,No set_city_production(Builder @ Malgium) appears; builders only built in Babylon,N,N
+4,flint-olive-phalanx-07,gpt-5.4,60,Keep warrior and archer near settlement for safety,"Multiple unit_action(move) calls T+1-T+10 show units positioning and moving near (40,10) area and conducting patrols",Y,Y
+5,gilded-teal-relic-32,gpt-5.4,30,Consider Irrigation research,set_research(Irrigation) at T+2,Y,Y
+6,wandering-carmine-ballista-57,claude-opus-4-6,250,Research Nuclear Fusion next turn,T+1 set_research(Robotics) instead of Nuclear Fusion,N,N
+7,gilded-teal-relic-32,gpt-5.4,220,Check city-state quest details soon,No get_city_state_quests or equivalent query appears in tool calls,N,P
+8,hidden-lilac-atlas-39,claude-opus-4-6,50,Trade surplus horses for gold with contacts,send_diplomatic_action(Diplomatic Delegation) at T+9 but no trade or commerce action executed; no horses-for-gold trade visible,N,P
+9,celestial-ochre-monument-04,gpt-5.4,60,Continue spending builder charges on high-value improvements,"Builders improve at (47,4) farm T+2, (42,9) plantation T+7, (42,10) farm T+9, (45,3) farm T+9",Y,Y
+10,fierce-rust-horseman-79,gpt-5.4,60,Use Builder's last charge on high-leverage tile,"Builder improvements executed at (46,3), (45,6), (47,6), (46,9) - farms placed on key tiles T+1 through T+6",Y,Y
+11,veiled-lapis-flagship-44,gpt-5.4,30,Complete Babylon's Builder and assign charges to growth/luxury,"No Builder unit created for Babylon in tools; Babylon produced Government (T+2), Trader (T+4), Palgum (T+7-8), Bronze Working researched (T+8) but no Builder production",N,N
+12,solar-flax-forum-10,claude-opus-4-6,100,Dramatically increase science output,"Campus, University, and Great Scientist (Ibn Khaldun) recruited, but only Guilds research visible, not the full tech chain",P,Y
+13,dread-cobalt-chariot-34,gpt-5.4,130,Let Durmuti keep Granary unless urgent switch needed,No Durmuti production change appears in tools; Granary maintained (no defensive switch triggered),Y,Y
+14,celestial-ochre-monument-04,gpt-5.4,200,Seoul repair its Bank,T+1: set_city_production(Bank) → PRODUCING|BUILDING_BANK|1 turns,Y,Y
+15,dread-cobalt-chariot-34,gpt-5.4,130,Continue Malgium on 1-turn Sabum production,set_city_production(Babylonian Sabum Kibittum) appears in every turn T+1-T+10 at Malgium,Y,Y
+16,solar-flax-forum-10,claude-opus-4-6,100,Build Campuses for science infrastructure,"set_city_production(Campus) at T+6, PRODUCING|DISTRICT_CAMPUS|25 turns",Y,Y
+17,dread-cobalt-chariot-34,gpt-5.4,240,Keep city queues on economic recovery choices,"Productions set: Market (T+2), Trader (T+3), Bank (T+5), Campus Enhance (T+1,T+5,T+8), Commercial Hub (T+9) - all low-risk economic focuses",Y,Y
+18,veiled-lapis-flagship-44,gpt-5.4,30,Send delegation to Japan soon after first contact,send_diplomatic_action(Diplomatic Delegation) → ACCEPTED at T+1; Japan accepted delegation immediately,Y,Y
+19,gilded-teal-relic-32,gpt-5.4,30,Improve tiles supporting Sheep growth,"One unit_action(improve) for IMPROVEMENT_PASTURE at 42,15 (T+4), but no specific Sheep tile improvements confirmed",P,P
+20,wandering-carmine-ballista-57,claude-opus-4-6,250,Check if Exoplanet unlocks with Nuclear Fusion,Nuclear Fusion was never researched; Robotics was researched instead at T+1,N,N
+21,dread-cobalt-chariot-34,gpt-5.4,240,"Repair pillaged farm at 39,14 with builder 10092580","T+1: unit_action(repair) → REPAIRING|IMPROVEMENT_FARM at (39,14)",Y,Y
+22,volcanic-vermil-ember-37,gemini-3.1-pro-preview,250,Keep doing Campus projects,Multiple set_city_production(Enhance District Campus) calls across T+1 through T+10 in various cities,Y,Y
+23,flint-olive-phalanx-07,gpt-5.4,60,"Found fourth city at (40,10)","T+1: unit_action(found_city) → FOUNDED|40,10",Y,Y
+24,dread-cobalt-chariot-34,gpt-5.4,240,Build second Malgium wheat farm,"Multiple farm improvements executed: T+1 at (41,12), T+7 at (45,13), T+9 at (43,10), T+10 at (41,11) and (44,15)",Y,Y
+25,flint-olive-phalanx-07,gpt-5.4,60,"Reassess district plans for science output (Universities, Campus)",T+8: get_district_advisor(DISTRICT_CAMPUS) and T+10: set_city_production(University @ Babylon) demonstrate reassessment and planning for science infrastructure,Y,Y
+26,dread-cobalt-chariot-34,gpt-5.4,240,Recheck GPT after each batch of improvements,No get_victory_progress or comparable GPT check calls found in T+1 through T+10,N,N
+27,celestial-ochre-monument-04,gpt-5.4,60,Gyeongju archer finishes and reinforces Seoul or core,"No archer production or completion documented; Gyeongju produces Horseman (T+1,T+4,T+7) then Settler (T+10)",N,N
+28,gilded-teal-relic-32,gpt-5.4,220,Finish Kar-Shamash's Sewer repair,No set_city_production calls for Sewer repair in Kar-Shamash; only Enhance District Campus productions appear,N,N
+29,gilded-teal-relic-32,gpt-5.4,30,Finish Babylon's Granary,"No set_city_production call for Granary at Babylon; instead Builder (T+2) and Settler (T+6, T+10) were prioritized",N,N
+30,veiled-lapis-flagship-44,gpt-5.4,30,Finish Writing research tech,"Writing never appears in research commands; instead Irrigation (T+2), Early Empire (T+4), Animal Husbandry (T+5), Political Philosophy (T+8), Bronze Working (T+8) were researched",N,N
+31,steep-vermil-trebuchet-27,claude-opus-4-6,220,Research Guidance Systems sequentially,T+10: set_research(Guidance Systems) → RESEARCHING|TECH_GUIDANCE_SYSTEMS,Y,Y
+32,regal-sepia-corsair-87,claude-opus-4-6,50,Research Iron Working for swordsmen,set_research(Iron Working) executed T+3,Y,Y
+33,celestial-ochre-monument-04,gpt-5.4,200,Re-scan frontline for attack opportunities,T+1: get_diplomacy → 5 civilizations; T+2: get_diplomacy → 5 civilizations (reconnaissance actions),Y,Y
+34,regal-sepia-corsair-87,claude-opus-4-6,200,Man-at-Arms captures city T206,"Man-at-Arms units created at Gyeongju but deleted at (38,16) by T+6; no city capture occurred",N,N
+35,regal-sepia-corsair-87,claude-opus-4-6,50,Push galley east along coast,Galley production started T+6 (11 turns) but no galley movement east observed; unit movements show exploration but not coastal galley exploration,P,P
+36,regal-sepia-corsair-87,claude-opus-4-6,200,"March to Tenochtitlan (27,40)","Units moved toward (28,34) and (43,13) areas instead; never reached Tenochtitlan target",N,P
+37,steep-vermil-trebuchet-27,claude-opus-4-6,120,Send trade routes to new cities,"set_city_production(Trader) at T+8, but no explicit send_trade_route calls to new cities; Trader unit created but activation/routing not confirmed",P,P
+38,solar-flax-forum-10,claude-opus-4-6,180,Continue sprint at maximum pace,Consistent production queueing and policy/research adjustments across all 10 turns demonstrates active sprint management,Y,Y
+39,regal-sepia-corsair-87,claude-opus-4-6,200,Bombard Teotihuacán T202,No attack action on Teotihuacán coordinates observed; unit diverted instead,N,N
+40,dread-cobalt-chariot-34,gpt-5.4,240,Prioritize tile restoration over expansion/combat,"Builder actions focus entirely on improvements (farms, quarry, mines, mills) with no military unit production or expansionist settlement",Y,Y
+41,wandering-carmine-ballista-57,claude-opus-4-6,30,Buy or build Trader in Babylon after Campus,T+1: set_city_production(Trader @ Babylon) executed,Y,Y
+42,veiled-lapis-flagship-44,gpt-5.4,150,Clear traffic jam around core,Multiple unit_action(move) calls in T+1-T+3 show units being repositioned away from congested areas,Y,Y
+43,fierce-rust-horseman-79,gpt-5.4,200,Watch for Gyeongju/Seoul/Gwangju completions,"Gyeongju production tracked (Korean Hwacha T+2, Pike And Shot T+8), but no explicit completion checks or Seoul/Gwangju monitoring tools appear",P,P
+44,dread-cobalt-chariot-34,gpt-5.4,130,Recheck local frontline before trusting attack lists,"Multiple get_city_states, get_great_people, get_governors calls show frontline refresh pattern",Y,Y
+45,hidden-lilac-atlas-39,claude-opus-4-6,200,Build Siege Tower in Gwangju for invasion,set_city_production(Siege Tower @ Gyeongju) at T+4 shows Siege Tower production started in correct city,Y,Y
+46,fierce-rust-horseman-79,gpt-5.4,60,Keep Seoul's military net in place,"Multiple unit movements (T+1-T+10) show continuous military unit positioning and repositioning around Seoul area (coordinates 43-47, 6-12)",Y,Y
+47,gilded-teal-relic-32,gpt-5.4,30,Keep Sabum near Eshnunna as escort,Multiple unit_action(fortify) and unit_action(move) calls show units being repositioned and fortified near the region throughout T+1-T+10,Y,Y
+48,solar-flax-forum-10,claude-opus-4-6,100,Build Universities for science infrastructure,"set_city_production(University) at T+9, PRODUCING|BUILDING_UNIVERSITY|25 turns",Y,Y
+49,wandering-carmine-ballista-57,claude-opus-4-6,30,Build 3rd city (settlement),No unit_action(found_city) or set_city_production(Settler) appears in tools,N,N
+50,flint-olive-phalanx-07,gpt-5.4,60,Return to settler production after city founded,T+2: set_city_production(Settler @ Babylon) and T+7: set_city_production(Settler @ Babylon) both appear in sequence,Y,Y

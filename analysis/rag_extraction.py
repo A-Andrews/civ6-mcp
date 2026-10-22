@@ -409,11 +409,11 @@ def build_labeling_sheet(k: int = 10) -> Path:
     return SHEET_PATH
 
 
-AUTO_SYSTEM = """You analyze a Civilization VI agent's planning note and determine which specific commitments it made and whether those commitments were executed in the following turns.
+AUTO_SYSTEM_TEMPLATE = """You analyze a Civilization VI agent's planning note and determine which specific commitments it made and whether those commitments were executed in the following turns.
 
 Given:
 - PLANNING: the agent's planning reflection for turn T
-- TOOLS: a summary of tool calls made in turns T+1 through T+10
+- TOOLS: a summary of tool calls made in turns T+1 through T+{k}
 
 For each concrete commitment in the planning text (a specific, observable action — not vague goals):
 1. Name the commitment briefly (<10 words)
@@ -432,15 +432,20 @@ Return ONLY valid JSON in this exact format:
 If no concrete commitments exist, return {"commitments": []}"""
 
 
-def auto_annotate(planning_text: str, tools_summary: str, api_key: str) -> list[dict]:
+def auto_annotate(planning_text: str, tools_summary: str, api_key: str, k: int = 10) -> list[dict]:
     """Use Claude Haiku to extract commitments and judge execution in one call.
+
+    The judge prompt is told the actual K-turn window so it isn't anchored to a
+    fixed horizon when k != 10.
 
     Returns list of dicts: [{text, executed, evidence}, ...]
     """
     if not planning_text.strip():
         return []
 
-    cache_key = hashlib.sha1((planning_text + "\x00" + tools_summary).encode("utf-8")).hexdigest()[:12]
+    cache_key = hashlib.sha1(
+        (f"k{k}\x00" + planning_text + "\x00" + tools_summary).encode("utf-8")
+    ).hexdigest()[:12]
     cache_path = CACHE_DIR / f"auto_{cache_key}.json"
     if cache_path.exists():
         return json.loads(cache_path.read_text())
@@ -451,7 +456,7 @@ def auto_annotate(planning_text: str, tools_summary: str, api_key: str) -> list[
     msg = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=512,
-        system=AUTO_SYSTEM,
+        system=AUTO_SYSTEM_TEMPLATE.replace("{k}", str(k)),
         messages=[{"role": "user", "content": user_msg}],
     )
     raw = msg.content[0].text.strip()
@@ -480,11 +485,14 @@ def run_auto_rag(api_key: str, k: int = 10) -> dict:
     from analysis.admissible_games import ADMISSIBLE_GAMES
 
     meta_by_run = {g["run_id"]: g for g in ADMISSIBLE_GAMES}
-    results_path = ROOT / "analysis" / "rag_auto_results.csv"
+    # Per-K output so sweeps don't clobber each other. k=10 keeps the legacy
+    # filename for backwards compatibility with existing tooling.
+    suffix = "" if k == 10 else f"_k{k}"
+    results_path = ROOT / "analysis" / f"rag_auto_results{suffix}.csv"
 
     all_commitments = []
     total = len(SAMPLE_TURNS)
-    print(f"Auto-annotating {total} sampled turns...")
+    print(f"Auto-annotating {total} sampled turns (RAG@{k})...")
 
     for i, (run_id, turn) in enumerate(SAMPLE_TURNS):
         print(f"  [{i+1}/{total}] {run_id} T{turn}", flush=True)
@@ -498,7 +506,7 @@ def run_auto_rag(api_key: str, k: int = 10) -> dict:
         meta = meta_by_run.get(run_id, {})
         model = meta.get("model", "unknown")
 
-        commitments = auto_annotate(planning, tools_summary, api_key)
+        commitments = auto_annotate(planning, tools_summary, api_key, k=k)
         for c in commitments:
             all_commitments.append({
                 "run_id": run_id,
@@ -613,12 +621,13 @@ if __name__ == "__main__":
 
     elif cmd == "auto":
         import os
-        key = os.environ.get("ANTHROPIC_API_KEY") or (sys.argv[2] if len(sys.argv) > 2 else "")
+        key = os.environ.get("ANTHROPIC_API_KEY")
         if not key:
             print("Error: ANTHROPIC_API_KEY not set.")
-            print("Usage: ANTHROPIC_API_KEY=sk-... python rag_extraction.py auto")
+            print("Usage: ANTHROPIC_API_KEY=sk-... python rag_extraction.py auto [K]")
             sys.exit(1)
-        run_auto_rag(api_key=key)
+        k = int(sys.argv[2]) if len(sys.argv) > 2 else 10
+        run_auto_rag(api_key=key, k=k)
 
     elif cmd == "agreement":
         path = Path(sys.argv[2]) if len(sys.argv) > 2 else SHEET_PATH

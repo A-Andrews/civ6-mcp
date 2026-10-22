@@ -1,0 +1,79 @@
+[
+ {"run_id":"steep-vermil-trebuchet-27","model":"claude-opus-4-6","scenario":"ground_control","turn":120,"commitments":[
+   {"text":"Build settler in Babylon","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Settler @ Babylon T+3"},
+   {"text":"Research Economics or Buttress","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Buttress T+1, Economics T+3"},
+   {"text":"Farm tiles with builders","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Farm T+1,2,5"},
+   {"text":"Build campuses in new cities immediately","exec_k5":"N","exec_k10":"N","exec_k20":"P","evidence":"new cities got Monument/Univ; one Campus only at T+14"},
+   {"text":"Send trade routes to new cities","exec_k5":"N","exec_k10":"N","exec_k20":"P","evidence":"Trader built; one trade route T+14"}
+ ]},
+ {"run_id":"steep-vermil-trebuchet-27","model":"claude-opus-4-6","scenario":"ground_control","turn":220,"commitments":[
+   {"text":"Research Synthetic Materials","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"not researched; other techs taken"},
+   {"text":"Research Guidance Systems","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"set_research(Guidance Systems) T+10"},
+   {"text":"Run spy in Korea","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no spy action in window"},
+   {"text":"Push Campus research projects","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"many Enhance District Campus"}
+ ]},
+ {"run_id":"solar-flax-forum-10","model":"claude-opus-4-6","scenario":"ground_control","turn":25,"commitments":[
+   {"text":"Pasture sheep","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Pasture T+2"},
+   {"text":"Farm resource for Irrigation eureka","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no farm improvement seen"},
+   {"text":"Settler founds second city","exec_k5":"N","exec_k10":"N","exec_k20":"Y","evidence":"found_city 44,13 T+12"},
+   {"text":"Build trader for Currency eureka","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Trader @ Babylon T+4"},
+   {"text":"Build Library for science","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no Library produced in window"}
+ ]},
+ {"run_id":"solar-flax-forum-10","model":"claude-opus-4-6","scenario":"ground_control","turn":100,"commitments":[
+   {"text":"Defend and attrition Roman army","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"many attacks T+1..4"},
+   {"text":"Propose peace","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no propose_peace in window"},
+   {"text":"Build Campuses","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"Campus/Library T+6"},
+   {"text":"Build Universities","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"University T+9"},
+   {"text":"Research Scientific Theory/Industrialization/Rocketry chain","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"different research path taken (Guilds/Shipbuilding)"}
+ ]},
+ {"run_id":"solar-flax-forum-10","model":"claude-opus-4-6","scenario":"ground_control","turn":180,"commitments":[
+   {"text":"Research Rocketry","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"Advanced Flight researched, not Rocketry"},
+   {"text":"Push Campus projects at max pace","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"continuous Enhance District Campus"},
+   {"text":"Recruit Great Scientist to shortcut Rocketry","exec_k5":"N","exec_k10":"P","exec_k20":"Y","evidence":"Goddard (engineer) T+8; Janaki Ammal (scientist) T+19"}
+ ]},
+ {"run_id":"wandering-carmine-ballista-57","model":"claude-opus-4-6","scenario":"ground_control","turn":30,"commitments":[
+   {"text":"Build Trader in Babylon","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Trader @ Babylon T+1"},
+   {"text":"Build more Builders in Babylon","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Builder @ Babylon T+2, T+9"},
+   {"text":"Settle 3rd city","exec_k5":"N","exec_k10":"N","exec_k20":"Y","evidence":"found_city 39,16 T+19"},
+   {"text":"Start trade route (Currency eureka)","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"trade_route to Malgium T+2"},
+   {"text":"Malgium Builder","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no Malgium builder seen"}
+ ]},
+ {"run_id":"wandering-carmine-ballista-57","model":"claude-opus-4-6","scenario":"ground_control","turn":130,"commitments":[
+   {"text":"Build Coal Power Plant","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Coal Power Plant T+2"},
+   {"text":"Build Workshop (Durmuti)","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Workshop T+1"},
+   {"text":"Build Factory (Malgium)","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"Factory T+6,7"},
+   {"text":"Build Ruhr Valley in Babylon","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Ruhr Valley @ Babylon T+4"},
+   {"text":"Research chain Steam/Flight/Radio/Rocketry","exec_k5":"N","exec_k10":"N","exec_k20":"P","evidence":"Flight T+11, Radio T+19; Rocketry not reached"}
+ ]},
+ {"run_id":"wandering-carmine-ballista-57","model":"claude-opus-4-6","scenario":"ground_control","turn":250,"commitments":[
+   {"text":"Research Nuclear Fusion/Robotics","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Robotics T+1"},
+   {"text":"Check Exoplanet/Offworld Mission requirement","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no victory-progress check in window"}
+ ]},
+ {"run_id":"regal-sepia-corsair-87","model":"claude-opus-4-6","scenario":"snowflake","turn":50,"commitments":[
+   {"text":"Push galley east along coast","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"galley movement not verifiable"},
+   {"text":"Finish Wheel tech","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"Wheel not researched in window"},
+   {"text":"Research Iron Working","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Iron Working T+3"},
+   {"text":"Build up military","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Archer T+3, Warrior/Archers T+8..16"},
+   {"text":"Settle 4th city","exec_k5":"N","exec_k10":"N","exec_k20":"Y","evidence":"found_city 41,11 T+16"}
+ ]},
+ {"run_id":"regal-sepia-corsair-87","model":"claude-opus-4-6","scenario":"snowflake","turn":200,"commitments":[
+   {"text":"Bombard Teotihuacan with Hwacha","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"attacks at (30-31,32-33) T+1,3 near target"},
+   {"text":"Build Man-at-Arms","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Man At Arms @ Gyeongju T+1"},
+   {"text":"Build more Hwachas","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"Korean Hwacha T+7,8"},
+   {"text":"Capture Teotihuacan","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no capture in window"}
+ ]},
+ {"run_id":"hidden-lilac-atlas-39","model":"claude-opus-4-6","scenario":"snowflake","turn":50,"commitments":[
+   {"text":"Build settler or Commercial Hub","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Settler @ Gyeongju T+1"},
+   {"text":"Research Iron Working","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"Iron Working not researched"},
+   {"text":"Research Political Philosophy for government","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"change_government Oligarchy T+6 implies PP done"},
+   {"text":"Settle 3rd city","exec_k5":"N","exec_k10":"N","exec_k20":"Y","evidence":"found_city 43,10 T+19"},
+   {"text":"Trade surplus horses for gold","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no horse trade in window"}
+ ]},
+ {"run_id":"hidden-lilac-atlas-39","model":"claude-opus-4-6","scenario":"snowflake","turn":200,"commitments":[
+   {"text":"Build Siege Tower in Gwangju","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Siege Tower T+2"},
+   {"text":"Build Hwachas","exec_k5":"N","exec_k10":"N","exec_k20":"Y","evidence":"Korean Hwacha T+16,17"},
+   {"text":"Build Man-at-Arms","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"Man At Arms T+8"},
+   {"text":"Declare war on Brazil","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"Declare Surprise War T+10"},
+   {"text":"Capture Rio/Brasilia/Belem","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"attacks near Brazil but no capture"}
+ ]}
+]

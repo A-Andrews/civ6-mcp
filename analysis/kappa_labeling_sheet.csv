@@ -1,0 +1,51 @@
+id,run_id,model,turn,commitment,evidence,auto_label,human_label
+1,volcanic-vermil-ember-37,gemini-3.1-pro-preview,250,Wait for Exoplanet,"set_city_production(Launch Exoplanet Expedition) at T+5 with 26 turns remaining, maintained through observation window",Y,Y
+2,regal-sepia-corsair-87,claude-opus-4-6,200,"Hwacha at (30,31) continues to Teotihuacán (27,34)","Unit moved from (30,31) to (29,31) in T+1, then toward target but diverted; never reached Teotihuacán (27,34)",P,P
+3,veiled-lapis-flagship-44,gpt-5.4,150,"Builder at 38,10 improve farm immediately","unit_action(improve) → IMPROVING|IMPROVEMENT_FARM|38,10 at T+2",Y,Y
+4,steep-vermil-trebuchet-27,claude-opus-4-6,120,Build settler in Babylon,"set_city_production(Settler @ Babylon) at T+3, T+5, T+8 confirms sustained production",Y,Y
+5,solar-flax-forum-10,claude-opus-4-6,100,Defend and attrition Roman army,Multiple unit_action(attack) calls T+1-T+4 targeting Roman units at various coordinates,Y,Y
+6,regal-sepia-corsair-87,claude-opus-4-6,50,Build up military,"Archer production set T+3 and T+10, Warrior T+8, but limited unit count; multiple attack attempts suggest military engagement",P,Y
+7,volcanic-vermil-ember-37,gemini-3.1-pro-preview,150,Send trade route from Karkar to boost food,"unit_action(trade_route → (43,13)) executed at T+9 to Borsippa, but no confirmation it originated from Karkar or was food-focused",P,P
+8,steep-vermil-trebuchet-27,claude-opus-4-6,120,Research Economics,set_research(Economics) at T+3,Y,Y
+9,hidden-lilac-atlas-39,claude-opus-4-6,50,Build settler or Commercial Hub after library,"set_city_production(Settler @ Gyeongju) at T+1, but then switched to Builder at T+4 and Horseman at T+7; settler production started but not completed",P,P
+10,veiled-lapis-flagship-44,gpt-5.4,150,"Reassess loyalty, housing after founding 5th city","No get_city_state, get_city_details, or loyalty checks appear after T+6 founding",N,N
+11,fierce-rust-horseman-79,gpt-5.4,200,Keep current military builds running,"Multiple set_city_production calls for Korean Hwacha units (T+2, T+6, T+7) and Pike And Shot (T+8) show continuous military production",Y,Y
+12,volcanic-vermil-ember-37,gemini-3.1-pro-preview,50,Use Archer to scout mountains for Barbarians,"Archer engaged in combat at (45,13) T+7 and scouting movements, but primary focus was combat rather than reconnaissance",P,Y
+13,dread-cobalt-chariot-34,gpt-5.4,130,Keep Geneva trade route active,"Trade route to Geneva established T+8 and T+10, but T+5 and T+9 show 0/1 active routes (broken/inactive)",P,P
+14,hidden-lilac-atlas-39,claude-opus-4-6,200,Declare war on Brazil at T213,"send_diplomatic_action(Declare Surprise War) at T+10 with warning 'WAR_UNCERTAIN', suggesting declaration attempted but status unclear",P,P
+15,solar-flax-forum-10,claude-opus-4-6,100,Research Scientific Theory tech chain,"set_research(Guilds) at T+5, but no evidence of Scientific Theory, Industrialization, or Rocketry research",P,P
+16,celestial-ochre-monument-04,gpt-5.4,60,Reassess spearman stepping off camp with Horseman support,"Multiple attacks on (39,13) and (40,13) occur (T+3-T+7), suggesting combat engagement, but no clear resolution of camp capture or spearman repositioning documented",P,P
+17,remnant-khaki-oracle-28,gemini-3.1-pro-preview,150,Finish Industrial Zone in Babylon,No set_city_production call for Industrial Zone in Babylon appears in tools,N,N
+18,volcanic-vermil-ember-37,gemini-3.1-pro-preview,50,Research Bronze Working to reveal iron,"Research set to Drama Poetry (T+1), then Engineering (T+2), Machinery (T+4), Recorded History (T+6), Defensive Tactics (T+9) - never Bronze Working",N,N
+19,remnant-khaki-oracle-28,gemini-3.1-pro-preview,30,Sabum Kibittum and Slinger deal with Barbarian Scout,"Multiple unit_action(attack) calls from T+3 onwards targeting nearby coordinates (36,15), (38,16), (39,14), (37,14), (38,14), (40,13), (40,15), (38,16) consistent with combat engagement",Y,Y
+20,flint-olive-phalanx-07,gpt-5.4,60,Babylon finish Government Plaza wide building,"No set_city_production for Government Plaza at Babylon; instead produces Monument (T+1), Settler (T+2, T+7), Builder (T+4), and University (T+10)",N,N
+21,veiled-lapis-flagship-44,gpt-5.4,30,Finish Builder's route to Karkar's Wheat and improve it,"Builder moved to (38,15) by T+2 and improved FARM at (38,15) by T+3, but no Wheat improvement at Karkar's specific location confirmed",P,Y
+22,remnant-khaki-oracle-28,gemini-3.1-pro-preview,30,Borsippa building Archer to hold off camp,"set_city_production(Archer @ Babylon) at T+8, not Borsippa; Babylon is a different city than Borsippa",N,N
+23,regal-sepia-corsair-87,claude-opus-4-6,200,Position Hwacha at range 2 to Teotihuacán,Unit never reached range 2 of target; blocked by foreign territory and diverted to other objectives,N,N
+24,flint-olive-phalanx-07,gpt-5.4,60,Babylon finish Government Plaza wide building,"No set_city_production for Government Plaza at Babylon; instead produces Monument (T+1), Settler (T+2, T+7), Builder (T+4), and University (T+10)",N,N
+25,volcanic-vermil-ember-37,gemini-3.1-pro-preview,50,"Send Sabum Kibittum to protect (36,11)","Unit moved progressively toward (36,11), reaching it by T+6",Y,Y
+26,volcanic-vermil-ember-37,gemini-3.1-pro-preview,150,Wait for Gold to reach 920 to patronize Leonardo da Vinci,patronize_great_person(42) Leonardo da Vinci executed at T+5 with cost 605 gold,Y,Y
+27,steep-vermil-trebuchet-27,claude-opus-4-6,220,Push Campus Research Projects for Carl Sagan,"Multiple Enhance District Campus projects set across T+2 through T+10, consistently maintained in production queues",Y,Y
+28,fierce-rust-horseman-79,gpt-5.4,200,"Repair pillaged farm at 42,10 when builder available",No builder actions or farm repair tool calls appear in the tools; commitment noted for future but not executed in T+1 through T+10,N,N
+29,steep-vermil-trebuchet-27,claude-opus-4-6,220,Research Synthetic Materials after Nuclear Fission,"Planning required sequential research of Synthetic Materials, but T+10 shows Guidance Systems being researched instead; Synthetic Materials never appears in tool calls",N,N
+30,veiled-lapis-flagship-44,gpt-5.4,150,"Walk settler toward 40,20 in safe steps","unit_action(move → (40,20)) executed T+5, settler reaches target; found_city at (40,20) T+6",Y,Y
+31,hidden-lilac-atlas-39,claude-opus-4-6,200,Continue building Hwachas and preparing invasion force,"set_city_production(Man At Arms) at T+8 and T+10 shows unit production, but no Hwacha production calls found in tools",P,P
+32,flint-olive-phalanx-07,gpt-5.4,60,Build Monument or Granary in new city,"T+1: purchase_item(Granary) and set_city_production(Monument) at Babylon, not at newly founded (40,10)",P,P
+33,remnant-khaki-oracle-28,gemini-3.1-pro-preview,150,Build Workshop in Babylon,T+2: set_city_production(Workshop @ Babylon) → PRODUCING|BUILDING_WORKSHOP|3 turns,Y,Y
+34,dread-cobalt-chariot-34,gpt-5.4,130,Use Malgium's city shot on best in-range target,"city_attack(Malgium) executed every turn T+1 through T+10, targeting knights and crossbowman at various coordinates",Y,Y
+35,volcanic-vermil-ember-37,gemini-3.1-pro-preview,50,"Grab the Goody Hut at (45,3)","Unit moved to (43,3) then (43,2) then (43,1) then (44,2) - never reached (45,3)",N,N
+36,steep-vermil-trebuchet-27,claude-opus-4-6,120,Build campuses in new cities immediately,No set_city_production(Campus) calls found; new cities founded at T+9 and T+10 but no campus production recorded,N,N
+37,celestial-ochre-monument-04,gpt-5.4,60,"After camp gone, prioritize Seoul's iron and bananas","No set_city_production calls for Seoul with iron/bananas; Library built in an unnamed city (T+5), trade route to Seoul started (T+3) but not production priorities",N,N
+38,fierce-rust-horseman-79,gpt-5.4,60,Continue Currency research,"No set_research(Currency) call found; research switched to Games Recreation, The Wheel, Drama Poetry, Engineering",N,N
+39,fierce-rust-horseman-79,gpt-5.4,60,Continue Currency research,"No set_research(Currency) call found; research switched to Games Recreation, The Wheel, Drama Poetry, Engineering",N,N
+40,volcanic-vermil-ember-37,gemini-3.1-pro-preview,150,Continue pushing Research Labs and Spaceports,"set_city_production(Research Lab @ Babylon) at T+1, T+2, T+4 shows commitment to labs; no Spaceport production recorded",P,P
+41,volcanic-vermil-ember-37,gemini-3.1-pro-preview,50,"Settler advances to (36,11)","Unit reached (36,11) by T+6 and remained in area through T+10",Y,Y
+42,veiled-lapis-flagship-44,gpt-5.4,150,"Builder at 44,12 repair pillaged mine/lumber mill","unit_action(repair) → REPAIRING|IMPROVEMENT_LUMBER_MILL at (43,11) T+7 and REPAIRING|IMPROVEMENT_MINE at (44,11) T+7",Y,Y
+43,celestial-ochre-monument-04,gpt-5.4,60,"After camp gone, prioritize Seoul's iron and bananas","No set_city_production calls for Seoul with iron/bananas; Library built in an unnamed city (T+5), trade route to Seoul started (T+3) but not production priorities",N,N
+44,remnant-khaki-oracle-28,gemini-3.1-pro-preview,150,Maintain defensive wall at Mashkan-shapir,No set_city_production or unit_action for wall construction at Mashkan-shapir appears,N,P
+45,celestial-ochre-monument-04,gpt-5.4,200,Keep eye on GPT after Kumasi route,"Multiple get_diplomacy calls across turns suggest monitoring, but no explicit GPT-specific action confirmed in tools",P,P
+46,solar-flax-forum-10,claude-opus-4-6,180,Build Spaceport T195-205,"No Spaceport production queued; production shows Workshop, Campus enhancements, and Factory instead",N,N
+47,regal-sepia-corsair-87,claude-opus-4-6,50,Finish Wheel tech (1 turn),No set_research(Wheel) call; instead Iron Working researched T+3 and Shipbuilding T+8,N,N
+48,veiled-lapis-flagship-44,gpt-5.4,30,Maintain western defensive screen of Warrior/Sabum/Scout,"Multiple unit_action(fortify) and unit_action(alert) commands throughout T+1-T+10 maintaining defensive positions around (38-42, 12-19) region",Y,Y
+49,hidden-lilac-atlas-39,claude-opus-4-6,50,Continue galley south along west coast,Multiple unit_action(move) calls show consistent southward movement along western coordinates (42→40→39→38→37→36 latitude progression),Y,Y
+50,remnant-khaki-oracle-28,gemini-3.1-pro-preview,150,Finish Industrial Zone in Babylon,No set_city_production call for Industrial Zone in Babylon appears in tools,N,N

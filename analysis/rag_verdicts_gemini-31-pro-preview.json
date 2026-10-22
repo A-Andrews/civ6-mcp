@@ -1,0 +1,30 @@
+[
+ {"run_id":"remnant-khaki-oracle-28","model":"gemini-3.1-pro-preview","scenario":"ground_control","turn":30,"commitments":[
+   {"text":"Attack barbarian scout near Babylon","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"attacks at (36-39,14-16) T+3..5 near Babylon"},
+   {"text":"Warrior returns to defend","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no fortify/garrison evidence"},
+   {"text":"Build Archer in Borsippa","exec_k5":"N","exec_k10":"P","exec_k20":"P","evidence":"Archer produced at Babylon T+8, not Borsippa"}
+ ]},
+ {"run_id":"remnant-khaki-oracle-28","model":"gemini-3.1-pro-preview","scenario":"ground_control","turn":150,"commitments":[
+   {"text":"Finish Industrial Zone in Babylon","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no IZ production/completion in window"},
+   {"text":"Build Workshop in Babylon","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"set_city_production(Workshop @ Babylon) T+2"},
+   {"text":"Maintain defensive wall at Mashkan-shapir","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"castles built but not clearly at Mashkan-shapir"}
+ ]},
+ {"run_id":"volcanic-vermil-ember-37","model":"gemini-3.1-pro-preview","scenario":"ground_control","turn":50,"commitments":[
+   {"text":"Grab goody hut at (45,3)","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no evidence of hut collection"},
+   {"text":"Send unit to protect city spot (36,11)","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"attacks at (37-38,11) T+3..5, unit active at spot"},
+   {"text":"Settler settles (36,11)","exec_k5":"N","exec_k10":"P","exec_k20":"P","evidence":"founded 46,18 then 40,11 near but not exact"},
+   {"text":"Builder improves tiles near Borsippa","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Farm actions T+1"},
+   {"text":"Archer scouts mountains for barbs","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no verifiable scouting"},
+   {"text":"Research Bronze Working","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"researched Engineering/Machinery instead"}
+ ]},
+ {"run_id":"volcanic-vermil-ember-37","model":"gemini-3.1-pro-preview","scenario":"ground_control","turn":150,"commitments":[
+   {"text":"Finish builder tasks (mines/farms/repairs)","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"many improve Mine/Farm/LumberMill T+1..5"},
+   {"text":"Patronize Leonardo da Vinci","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"patronize_great_person Leonardo T+5"},
+   {"text":"Push Research Labs and Spaceports","exec_k5":"P","exec_k10":"P","exec_k20":"Y","evidence":"Research Labs immediate; Spaceport at T+18"},
+   {"text":"Trade route from Karkar for food","exec_k5":"N","exec_k10":"P","exec_k20":"P","evidence":"trade routes started T+9+ but origin unclear"}
+ ]},
+ {"run_id":"volcanic-vermil-ember-37","model":"gemini-3.1-pro-preview","scenario":"ground_control","turn":250,"commitments":[
+   {"text":"Keep doing Campus projects","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"multiple Enhance District Campus T+1"},
+   {"text":"Launch Exoplanet Expedition","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Launch Exoplanet Expedition project set T+5"}
+ ]}
+]

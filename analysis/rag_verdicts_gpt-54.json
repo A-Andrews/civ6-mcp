@@ -1,0 +1,106 @@
+[
+ {"run_id":"veiled-lapis-flagship-44","model":"gpt-5.4","scenario":"ground_control","turn":30,"commitments":[
+   {"text":"Improve Karkar's Wheat with builder","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Farm/Plantation T+3,5; route to Karkar T+7"},
+   {"text":"Complete Babylon Builder, improve tiles","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve actions T+3,5,9"},
+   {"text":"Finish Writing","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"research advanced past Writing to Irrigation T+2"},
+   {"text":"Research Irrigation or Animal Husbandry","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Irrigation T+2, Animal Husbandry T+5"},
+   {"text":"Send delegation to Japan","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Diplomatic Delegation accepted T+1"},
+   {"text":"Keep western defensive screen","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"repeated fortify actions"}
+ ]},
+ {"run_id":"veiled-lapis-flagship-44","model":"gpt-5.4","scenario":"ground_control","turn":150,"commitments":[
+   {"text":"Walk settler to 40,20 and found","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"found_city 40,20 T+6"},
+   {"text":"Improve farm at 38,10 immediately","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Farm 38,10 T+2"},
+   {"text":"Repairs around Mari/Karkar","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"improve Mine/Farm 43,10/42,11 T+7,9"},
+   {"text":"Keep Babylon on Settler","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"Settler @ Babylon T+6"}
+ ]},
+ {"run_id":"veiled-lapis-flagship-44","model":"gpt-5.4","scenario":"ground_control","turn":260,"commitments":[
+   {"text":"Keep Babylon on space race step","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Launch Mars Base @ Babylon T+3"},
+   {"text":"Trim barbarian Mech Infantry","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"attacks T+1,6,8+"},
+   {"text":"Use builders on yield improvements","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Farm/Mine/Lumber Mill"}
+ ]},
+ {"run_id":"dread-cobalt-chariot-34","model":"gpt-5.4","scenario":"ground_control","turn":25,"commitments":[
+   {"text":"Hold Malgium with garrison + archer fire","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"attacks + fortify T+1..5"},
+   {"text":"Finish Pottery","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"advanced to Writing T+3, Pottery done"},
+   {"text":"Research Writing next","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"set_research(Writing) T+3"},
+   {"text":"Babylon resume builders","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Builder @ Babylon T+2, T+9"}
+ ]},
+ {"run_id":"dread-cobalt-chariot-34","model":"gpt-5.4","scenario":"ground_control","turn":130,"commitments":[
+   {"text":"Malgium city shot on target","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no city_action attack in window"},
+   {"text":"Continue Malgium 1-turn Sabum production","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Sabum Kibittum every turn T+1..20"},
+   {"text":"Keep Geneva trade route active","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"trade_route to Geneva T+8,10"}
+ ]},
+ {"run_id":"dread-cobalt-chariot-34","model":"gpt-5.4","scenario":"ground_control","turn":240,"commitments":[
+   {"text":"Repair pillaged farm","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Farm T+1 and builder wave"},
+   {"text":"Push gypsum quarry","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Quarry 38,12 T+3"},
+   {"text":"Second Malgium wheat farm","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"multiple farm improvements"},
+   {"text":"Keep queues on economic recovery","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Market/Bank/Campus projects"}
+ ]},
+ {"run_id":"flint-olive-phalanx-07","model":"gpt-5.4","scenario":"ground_control","turn":60,"commitments":[
+   {"text":"Found 4th city at 40,10","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"found_city 40,10 T+1"},
+   {"text":"Opening build Monument/Granary","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"purchase Granary + Monument T+1"},
+   {"text":"Babylon return to settler/builder","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Settler T+2, Builder T+4"},
+   {"text":"Build Universities/Campus for science","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"University T+10, Campus T+11"}
+ ]},
+ {"run_id":"flint-olive-phalanx-07","model":"gpt-5.4","scenario":"ground_control","turn":150,"commitments":[
+   {"text":"Finish Babylon Builder, improve tiles","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Lumber Mill/Farm T+4,8,10"},
+   {"text":"Food improvement near Dur-Kurigalzu","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"farm improvements + route to Dur-Kurigalzu T+10"},
+   {"text":"Dur-Kurigalzu on Industrial Zone","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Industrial Zone T+2,3"},
+   {"text":"Sell surplus luxuries via trade","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"propose_trade with Rome T+6"}
+ ]},
+ {"run_id":"fierce-umber-garrison-15","model":"gpt-5.4","scenario":"ground_control","turn":140,"commitments":[
+   {"text":"Finish queued improvements","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"many improve Mine/Farm/Lumber Mill T+1,2,4"},
+   {"text":"Settle with staged settlers","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"found_city 32,12 T+2"},
+   {"text":"Babylon builder to improvements","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Builders + improvements"},
+   {"text":"Dur-Kurigalzu finish Walls","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Walls T+1"},
+   {"text":"Improve niter at 39,21","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Mine 39,21 T+1"},
+   {"text":"Borsippa on University","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no University produced in window"}
+ ]},
+ {"run_id":"fierce-umber-garrison-15","model":"gpt-5.4","scenario":"ground_control","turn":230,"commitments":[
+   {"text":"Research Chemistry then Rocketry","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"Chemistry T+7, Rocketry T+17"},
+   {"text":"Keep Campus project cycles","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"continuous Enhance District Campus"},
+   {"text":"Finish new Campus in Mashkan-shapir","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"campus enhance projects running"},
+   {"text":"Activate idling Great Persons","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no activate of Janaki/Alvar in window"}
+ ]},
+ {"run_id":"gilded-teal-relic-32","model":"gpt-5.4","scenario":"ground_control","turn":30,"commitments":[
+   {"text":"Improve growth tiles (Sheep/Pasture)","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Pasture 42,15 T+4"},
+   {"text":"Keep Sabum near Eshnunna as escort","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"repeated fortify near core"},
+   {"text":"Finish Babylon's Granary","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no Granary production in window"},
+   {"text":"Finish Eshnunna's Monument","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no Monument production in window"},
+   {"text":"Research Archery/Irrigation","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Archery + Irrigation T+2"}
+ ]},
+ {"run_id":"gilded-teal-relic-32","model":"gpt-5.4","scenario":"ground_control","turn":120,"commitments":[
+   {"text":"Produce/buy another Trader","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Trader @ Babylon T+2,4"},
+   {"text":"Build Market/Bank/Commercial Hub/Workshop","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Market/Bank/Workshop/Enhance CH T+5"},
+   {"text":"Babylon Industrial Zone project","exec_k5":"N","exec_k10":"N","exec_k20":"Y","evidence":"Enhance Industrial Zone T+18"},
+   {"text":"Repair Spices at 41,19","exec_k5":"N","exec_k10":"P","exec_k20":"P","evidence":"improve near 40,19/40,20 but not exact 41,19"},
+   {"text":"Builders restore SW tiles","exec_k5":"N","exec_k10":"Y","exec_k20":"Y","evidence":"improve Farm/Mine T+6,7,8"}
+ ]},
+ {"run_id":"gilded-teal-relic-32","model":"gpt-5.4","scenario":"ground_control","turn":220,"commitments":[
+   {"text":"Keep Dundee on Spaceport/space project","exec_k5":"N","exec_k10":"N","exec_k20":"Y","evidence":"Launch Earth Satellite T+14"},
+   {"text":"Continue Campus Research projects","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"continuous Enhance District Campus"},
+   {"text":"Restore center / builder dispatch","exec_k5":"N","exec_k10":"N","exec_k20":"P","evidence":"Repair Outer Defenses T+12, Builders T+14+"},
+   {"text":"Remove barbarian field cannon","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"attacks 47,15/45,16 T+3+"}
+ ]},
+ {"run_id":"celestial-ochre-monument-04","model":"gpt-5.4","scenario":"snowflake","turn":60,"commitments":[
+   {"text":"Attack barbarian camp (surround)","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"attacks 39,13/40,13 T+1..10"},
+   {"text":"Spend builder charges on improvements","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Farm/Plantation T+2,7,9"},
+   {"text":"Build Horseman in Gyeongju","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Horseman @ Gyeongju T+1"},
+   {"text":"Resolve Seowon placement","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Seowon district T+1"}
+ ]},
+ {"run_id":"celestial-ochre-monument-04","model":"gpt-5.4","scenario":"snowflake","turn":200,"commitments":[
+   {"text":"Seoul repair Bank","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Bank T+1"},
+   {"text":"Keep cities on Builder","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Builders T+1,3,4,5"},
+   {"text":"Use builders to improve tiles","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Fishing Boats T+3,5"},
+   {"text":"Attack Brazil's weak local force","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no attacks; built military instead"}
+ ]},
+ {"run_id":"fierce-rust-horseman-79","model":"gpt-5.4","scenario":"snowflake","turn":60,"commitments":[
+   {"text":"Keep Seoul military net in place","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"attacks 44,12 + fortify"},
+   {"text":"Use builder charge on high-value tile","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"improve Farm T+1,3"},
+   {"text":"Research Currency and Military Tradition","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"researched Wheel/Engineering/Machinery instead"}
+ ]},
+ {"run_id":"fierce-rust-horseman-79","model":"gpt-5.4","scenario":"snowflake","turn":200,"commitments":[
+   {"text":"Attack exposed cuirassier at 42,10","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"attack 42,10 T+1,2"},
+   {"text":"Keep military builds running","exec_k5":"Y","exec_k10":"Y","exec_k20":"Y","evidence":"Korean Hwacha, Pike And Shot T+2,6,7"},
+   {"text":"Repair pillaged farm at 42,10","exec_k5":"N","exec_k10":"N","exec_k20":"N","evidence":"no improve action; conditional not met"}
+ ]}
+]

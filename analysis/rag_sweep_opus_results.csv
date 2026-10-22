@@ -1,0 +1,142 @@
+run_id,model,scenario,turn,commitment,exec_k5,exec_k10,exec_k20,evidence
+veiled-lapis-flagship-44,gpt-5.4,ground_control,30,Improve Karkar's Wheat with builder,Y,Y,Y,"improve Farm/Plantation T+3,5; route to Karkar T+7"
+veiled-lapis-flagship-44,gpt-5.4,ground_control,30,"Complete Babylon Builder, improve tiles",Y,Y,Y,"improve actions T+3,5,9"
+veiled-lapis-flagship-44,gpt-5.4,ground_control,30,Finish Writing,Y,Y,Y,research advanced past Writing to Irrigation T+2
+veiled-lapis-flagship-44,gpt-5.4,ground_control,30,Research Irrigation or Animal Husbandry,Y,Y,Y,"Irrigation T+2, Animal Husbandry T+5"
+veiled-lapis-flagship-44,gpt-5.4,ground_control,30,Send delegation to Japan,Y,Y,Y,Diplomatic Delegation accepted T+1
+veiled-lapis-flagship-44,gpt-5.4,ground_control,30,Keep western defensive screen,Y,Y,Y,repeated fortify actions
+veiled-lapis-flagship-44,gpt-5.4,ground_control,150,"Walk settler to 40,20 and found",N,Y,Y,"found_city 40,20 T+6"
+veiled-lapis-flagship-44,gpt-5.4,ground_control,150,"Improve farm at 38,10 immediately",Y,Y,Y,"improve Farm 38,10 T+2"
+veiled-lapis-flagship-44,gpt-5.4,ground_control,150,Repairs around Mari/Karkar,N,Y,Y,"improve Mine/Farm 43,10/42,11 T+7,9"
+veiled-lapis-flagship-44,gpt-5.4,ground_control,150,Keep Babylon on Settler,N,Y,Y,Settler @ Babylon T+6
+veiled-lapis-flagship-44,gpt-5.4,ground_control,260,Keep Babylon on space race step,Y,Y,Y,Launch Mars Base @ Babylon T+3
+veiled-lapis-flagship-44,gpt-5.4,ground_control,260,Trim barbarian Mech Infantry,Y,Y,Y,"attacks T+1,6,8+"
+veiled-lapis-flagship-44,gpt-5.4,ground_control,260,Use builders on yield improvements,Y,Y,Y,improve Farm/Mine/Lumber Mill
+dread-cobalt-chariot-34,gpt-5.4,ground_control,25,Hold Malgium with garrison + archer fire,Y,Y,Y,attacks + fortify T+1..5
+dread-cobalt-chariot-34,gpt-5.4,ground_control,25,Finish Pottery,Y,Y,Y,"advanced to Writing T+3, Pottery done"
+dread-cobalt-chariot-34,gpt-5.4,ground_control,25,Research Writing next,Y,Y,Y,set_research(Writing) T+3
+dread-cobalt-chariot-34,gpt-5.4,ground_control,25,Babylon resume builders,Y,Y,Y,"Builder @ Babylon T+2, T+9"
+dread-cobalt-chariot-34,gpt-5.4,ground_control,130,Malgium city shot on target,N,N,N,no city_action attack in window
+dread-cobalt-chariot-34,gpt-5.4,ground_control,130,Continue Malgium 1-turn Sabum production,Y,Y,Y,Sabum Kibittum every turn T+1..20
+dread-cobalt-chariot-34,gpt-5.4,ground_control,130,Keep Geneva trade route active,N,Y,Y,"trade_route to Geneva T+8,10"
+dread-cobalt-chariot-34,gpt-5.4,ground_control,240,Repair pillaged farm,Y,Y,Y,improve Farm T+1 and builder wave
+dread-cobalt-chariot-34,gpt-5.4,ground_control,240,Push gypsum quarry,Y,Y,Y,"improve Quarry 38,12 T+3"
+dread-cobalt-chariot-34,gpt-5.4,ground_control,240,Second Malgium wheat farm,Y,Y,Y,multiple farm improvements
+dread-cobalt-chariot-34,gpt-5.4,ground_control,240,Keep queues on economic recovery,Y,Y,Y,Market/Bank/Campus projects
+flint-olive-phalanx-07,gpt-5.4,ground_control,60,"Found 4th city at 40,10",Y,Y,Y,"found_city 40,10 T+1"
+flint-olive-phalanx-07,gpt-5.4,ground_control,60,Opening build Monument/Granary,Y,Y,Y,purchase Granary + Monument T+1
+flint-olive-phalanx-07,gpt-5.4,ground_control,60,Babylon return to settler/builder,Y,Y,Y,"Settler T+2, Builder T+4"
+flint-olive-phalanx-07,gpt-5.4,ground_control,60,Build Universities/Campus for science,N,Y,Y,"University T+10, Campus T+11"
+flint-olive-phalanx-07,gpt-5.4,ground_control,150,"Finish Babylon Builder, improve tiles",Y,Y,Y,"improve Lumber Mill/Farm T+4,8,10"
+flint-olive-phalanx-07,gpt-5.4,ground_control,150,Food improvement near Dur-Kurigalzu,N,Y,Y,farm improvements + route to Dur-Kurigalzu T+10
+flint-olive-phalanx-07,gpt-5.4,ground_control,150,Dur-Kurigalzu on Industrial Zone,Y,Y,Y,"Industrial Zone T+2,3"
+flint-olive-phalanx-07,gpt-5.4,ground_control,150,Sell surplus luxuries via trade,N,Y,Y,propose_trade with Rome T+6
+fierce-umber-garrison-15,gpt-5.4,ground_control,140,Finish queued improvements,Y,Y,Y,"many improve Mine/Farm/Lumber Mill T+1,2,4"
+fierce-umber-garrison-15,gpt-5.4,ground_control,140,Settle with staged settlers,Y,Y,Y,"found_city 32,12 T+2"
+fierce-umber-garrison-15,gpt-5.4,ground_control,140,Babylon builder to improvements,Y,Y,Y,Builders + improvements
+fierce-umber-garrison-15,gpt-5.4,ground_control,140,Dur-Kurigalzu finish Walls,Y,Y,Y,Walls T+1
+fierce-umber-garrison-15,gpt-5.4,ground_control,140,"Improve niter at 39,21",Y,Y,Y,"improve Mine 39,21 T+1"
+fierce-umber-garrison-15,gpt-5.4,ground_control,140,Borsippa on University,N,N,N,no University produced in window
+fierce-umber-garrison-15,gpt-5.4,ground_control,230,Research Chemistry then Rocketry,N,Y,Y,"Chemistry T+7, Rocketry T+17"
+fierce-umber-garrison-15,gpt-5.4,ground_control,230,Keep Campus project cycles,Y,Y,Y,continuous Enhance District Campus
+fierce-umber-garrison-15,gpt-5.4,ground_control,230,Finish new Campus in Mashkan-shapir,Y,Y,Y,campus enhance projects running
+fierce-umber-garrison-15,gpt-5.4,ground_control,230,Activate idling Great Persons,N,N,N,no activate of Janaki/Alvar in window
+gilded-teal-relic-32,gpt-5.4,ground_control,30,Improve growth tiles (Sheep/Pasture),Y,Y,Y,"improve Pasture 42,15 T+4"
+gilded-teal-relic-32,gpt-5.4,ground_control,30,Keep Sabum near Eshnunna as escort,Y,Y,Y,repeated fortify near core
+gilded-teal-relic-32,gpt-5.4,ground_control,30,Finish Babylon's Granary,N,N,N,no Granary production in window
+gilded-teal-relic-32,gpt-5.4,ground_control,30,Finish Eshnunna's Monument,N,N,N,no Monument production in window
+gilded-teal-relic-32,gpt-5.4,ground_control,30,Research Archery/Irrigation,Y,Y,Y,Archery + Irrigation T+2
+gilded-teal-relic-32,gpt-5.4,ground_control,120,Produce/buy another Trader,Y,Y,Y,"Trader @ Babylon T+2,4"
+gilded-teal-relic-32,gpt-5.4,ground_control,120,Build Market/Bank/Commercial Hub/Workshop,Y,Y,Y,Market/Bank/Workshop/Enhance CH T+5
+gilded-teal-relic-32,gpt-5.4,ground_control,120,Babylon Industrial Zone project,N,N,Y,Enhance Industrial Zone T+18
+gilded-teal-relic-32,gpt-5.4,ground_control,120,"Repair Spices at 41,19",N,P,P,"improve near 40,19/40,20 but not exact 41,19"
+gilded-teal-relic-32,gpt-5.4,ground_control,120,Builders restore SW tiles,N,Y,Y,"improve Farm/Mine T+6,7,8"
+gilded-teal-relic-32,gpt-5.4,ground_control,220,Keep Dundee on Spaceport/space project,N,N,Y,Launch Earth Satellite T+14
+gilded-teal-relic-32,gpt-5.4,ground_control,220,Continue Campus Research projects,Y,Y,Y,continuous Enhance District Campus
+gilded-teal-relic-32,gpt-5.4,ground_control,220,Restore center / builder dispatch,N,N,P,"Repair Outer Defenses T+12, Builders T+14+"
+gilded-teal-relic-32,gpt-5.4,ground_control,220,Remove barbarian field cannon,Y,Y,Y,"attacks 47,15/45,16 T+3+"
+celestial-ochre-monument-04,gpt-5.4,snowflake,60,Attack barbarian camp (surround),Y,Y,Y,"attacks 39,13/40,13 T+1..10"
+celestial-ochre-monument-04,gpt-5.4,snowflake,60,Spend builder charges on improvements,Y,Y,Y,"improve Farm/Plantation T+2,7,9"
+celestial-ochre-monument-04,gpt-5.4,snowflake,60,Build Horseman in Gyeongju,Y,Y,Y,Horseman @ Gyeongju T+1
+celestial-ochre-monument-04,gpt-5.4,snowflake,60,Resolve Seowon placement,Y,Y,Y,Seowon district T+1
+celestial-ochre-monument-04,gpt-5.4,snowflake,200,Seoul repair Bank,Y,Y,Y,Bank T+1
+celestial-ochre-monument-04,gpt-5.4,snowflake,200,Keep cities on Builder,Y,Y,Y,"Builders T+1,3,4,5"
+celestial-ochre-monument-04,gpt-5.4,snowflake,200,Use builders to improve tiles,Y,Y,Y,"improve Fishing Boats T+3,5"
+celestial-ochre-monument-04,gpt-5.4,snowflake,200,Attack Brazil's weak local force,N,N,N,no attacks; built military instead
+fierce-rust-horseman-79,gpt-5.4,snowflake,60,Keep Seoul military net in place,Y,Y,Y,"attacks 44,12 + fortify"
+fierce-rust-horseman-79,gpt-5.4,snowflake,60,Use builder charge on high-value tile,Y,Y,Y,"improve Farm T+1,3"
+fierce-rust-horseman-79,gpt-5.4,snowflake,60,Research Currency and Military Tradition,N,N,N,researched Wheel/Engineering/Machinery instead
+fierce-rust-horseman-79,gpt-5.4,snowflake,200,"Attack exposed cuirassier at 42,10",Y,Y,Y,"attack 42,10 T+1,2"
+fierce-rust-horseman-79,gpt-5.4,snowflake,200,Keep military builds running,Y,Y,Y,"Korean Hwacha, Pike And Shot T+2,6,7"
+fierce-rust-horseman-79,gpt-5.4,snowflake,200,"Repair pillaged farm at 42,10",N,N,N,no improve action; conditional not met
+steep-vermil-trebuchet-27,claude-opus-4-6,ground_control,120,Build settler in Babylon,Y,Y,Y,Settler @ Babylon T+3
+steep-vermil-trebuchet-27,claude-opus-4-6,ground_control,120,Research Economics or Buttress,Y,Y,Y,"Buttress T+1, Economics T+3"
+steep-vermil-trebuchet-27,claude-opus-4-6,ground_control,120,Farm tiles with builders,Y,Y,Y,"improve Farm T+1,2,5"
+steep-vermil-trebuchet-27,claude-opus-4-6,ground_control,120,Build campuses in new cities immediately,N,N,P,new cities got Monument/Univ; one Campus only at T+14
+steep-vermil-trebuchet-27,claude-opus-4-6,ground_control,120,Send trade routes to new cities,N,N,P,Trader built; one trade route T+14
+steep-vermil-trebuchet-27,claude-opus-4-6,ground_control,220,Research Synthetic Materials,N,N,N,not researched; other techs taken
+steep-vermil-trebuchet-27,claude-opus-4-6,ground_control,220,Research Guidance Systems,N,Y,Y,set_research(Guidance Systems) T+10
+steep-vermil-trebuchet-27,claude-opus-4-6,ground_control,220,Run spy in Korea,N,N,N,no spy action in window
+steep-vermil-trebuchet-27,claude-opus-4-6,ground_control,220,Push Campus research projects,Y,Y,Y,many Enhance District Campus
+solar-flax-forum-10,claude-opus-4-6,ground_control,25,Pasture sheep,Y,Y,Y,improve Pasture T+2
+solar-flax-forum-10,claude-opus-4-6,ground_control,25,Farm resource for Irrigation eureka,N,N,N,no farm improvement seen
+solar-flax-forum-10,claude-opus-4-6,ground_control,25,Settler founds second city,N,N,Y,"found_city 44,13 T+12"
+solar-flax-forum-10,claude-opus-4-6,ground_control,25,Build trader for Currency eureka,Y,Y,Y,Trader @ Babylon T+4
+solar-flax-forum-10,claude-opus-4-6,ground_control,25,Build Library for science,N,N,N,no Library produced in window
+solar-flax-forum-10,claude-opus-4-6,ground_control,100,Defend and attrition Roman army,Y,Y,Y,many attacks T+1..4
+solar-flax-forum-10,claude-opus-4-6,ground_control,100,Propose peace,N,N,N,no propose_peace in window
+solar-flax-forum-10,claude-opus-4-6,ground_control,100,Build Campuses,N,Y,Y,Campus/Library T+6
+solar-flax-forum-10,claude-opus-4-6,ground_control,100,Build Universities,N,Y,Y,University T+9
+solar-flax-forum-10,claude-opus-4-6,ground_control,100,Research Scientific Theory/Industrialization/Rocketry chain,N,N,N,different research path taken (Guilds/Shipbuilding)
+solar-flax-forum-10,claude-opus-4-6,ground_control,180,Research Rocketry,N,N,N,"Advanced Flight researched, not Rocketry"
+solar-flax-forum-10,claude-opus-4-6,ground_control,180,Push Campus projects at max pace,Y,Y,Y,continuous Enhance District Campus
+solar-flax-forum-10,claude-opus-4-6,ground_control,180,Recruit Great Scientist to shortcut Rocketry,N,P,Y,Goddard (engineer) T+8; Janaki Ammal (scientist) T+19
+wandering-carmine-ballista-57,claude-opus-4-6,ground_control,30,Build Trader in Babylon,Y,Y,Y,Trader @ Babylon T+1
+wandering-carmine-ballista-57,claude-opus-4-6,ground_control,30,Build more Builders in Babylon,Y,Y,Y,"Builder @ Babylon T+2, T+9"
+wandering-carmine-ballista-57,claude-opus-4-6,ground_control,30,Settle 3rd city,N,N,Y,"found_city 39,16 T+19"
+wandering-carmine-ballista-57,claude-opus-4-6,ground_control,30,Start trade route (Currency eureka),Y,Y,Y,trade_route to Malgium T+2
+wandering-carmine-ballista-57,claude-opus-4-6,ground_control,30,Malgium Builder,N,N,N,no Malgium builder seen
+wandering-carmine-ballista-57,claude-opus-4-6,ground_control,130,Build Coal Power Plant,Y,Y,Y,Coal Power Plant T+2
+wandering-carmine-ballista-57,claude-opus-4-6,ground_control,130,Build Workshop (Durmuti),Y,Y,Y,Workshop T+1
+wandering-carmine-ballista-57,claude-opus-4-6,ground_control,130,Build Factory (Malgium),N,Y,Y,"Factory T+6,7"
+wandering-carmine-ballista-57,claude-opus-4-6,ground_control,130,Build Ruhr Valley in Babylon,Y,Y,Y,Ruhr Valley @ Babylon T+4
+wandering-carmine-ballista-57,claude-opus-4-6,ground_control,130,Research chain Steam/Flight/Radio/Rocketry,N,N,P,"Flight T+11, Radio T+19; Rocketry not reached"
+wandering-carmine-ballista-57,claude-opus-4-6,ground_control,250,Research Nuclear Fusion/Robotics,Y,Y,Y,Robotics T+1
+wandering-carmine-ballista-57,claude-opus-4-6,ground_control,250,Check Exoplanet/Offworld Mission requirement,N,N,N,no victory-progress check in window
+regal-sepia-corsair-87,claude-opus-4-6,snowflake,50,Push galley east along coast,N,N,N,galley movement not verifiable
+regal-sepia-corsair-87,claude-opus-4-6,snowflake,50,Finish Wheel tech,N,N,N,Wheel not researched in window
+regal-sepia-corsair-87,claude-opus-4-6,snowflake,50,Research Iron Working,Y,Y,Y,Iron Working T+3
+regal-sepia-corsair-87,claude-opus-4-6,snowflake,50,Build up military,Y,Y,Y,"Archer T+3, Warrior/Archers T+8..16"
+regal-sepia-corsair-87,claude-opus-4-6,snowflake,50,Settle 4th city,N,N,Y,"found_city 41,11 T+16"
+regal-sepia-corsair-87,claude-opus-4-6,snowflake,200,Bombard Teotihuacan with Hwacha,Y,Y,Y,"attacks at (30-31,32-33) T+1,3 near target"
+regal-sepia-corsair-87,claude-opus-4-6,snowflake,200,Build Man-at-Arms,Y,Y,Y,Man At Arms @ Gyeongju T+1
+regal-sepia-corsair-87,claude-opus-4-6,snowflake,200,Build more Hwachas,N,Y,Y,"Korean Hwacha T+7,8"
+regal-sepia-corsair-87,claude-opus-4-6,snowflake,200,Capture Teotihuacan,N,N,N,no capture in window
+hidden-lilac-atlas-39,claude-opus-4-6,snowflake,50,Build settler or Commercial Hub,Y,Y,Y,Settler @ Gyeongju T+1
+hidden-lilac-atlas-39,claude-opus-4-6,snowflake,50,Research Iron Working,N,N,N,Iron Working not researched
+hidden-lilac-atlas-39,claude-opus-4-6,snowflake,50,Research Political Philosophy for government,N,Y,Y,change_government Oligarchy T+6 implies PP done
+hidden-lilac-atlas-39,claude-opus-4-6,snowflake,50,Settle 3rd city,N,N,Y,"found_city 43,10 T+19"
+hidden-lilac-atlas-39,claude-opus-4-6,snowflake,50,Trade surplus horses for gold,N,N,N,no horse trade in window
+hidden-lilac-atlas-39,claude-opus-4-6,snowflake,200,Build Siege Tower in Gwangju,Y,Y,Y,Siege Tower T+2
+hidden-lilac-atlas-39,claude-opus-4-6,snowflake,200,Build Hwachas,N,N,Y,"Korean Hwacha T+16,17"
+hidden-lilac-atlas-39,claude-opus-4-6,snowflake,200,Build Man-at-Arms,N,Y,Y,Man At Arms T+8
+hidden-lilac-atlas-39,claude-opus-4-6,snowflake,200,Declare war on Brazil,N,Y,Y,Declare Surprise War T+10
+hidden-lilac-atlas-39,claude-opus-4-6,snowflake,200,Capture Rio/Brasilia/Belem,N,N,N,attacks near Brazil but no capture
+remnant-khaki-oracle-28,gemini-3.1-pro-preview,ground_control,30,Attack barbarian scout near Babylon,Y,Y,Y,"attacks at (36-39,14-16) T+3..5 near Babylon"
+remnant-khaki-oracle-28,gemini-3.1-pro-preview,ground_control,30,Warrior returns to defend,N,N,N,no fortify/garrison evidence
+remnant-khaki-oracle-28,gemini-3.1-pro-preview,ground_control,30,Build Archer in Borsippa,N,P,P,"Archer produced at Babylon T+8, not Borsippa"
+remnant-khaki-oracle-28,gemini-3.1-pro-preview,ground_control,150,Finish Industrial Zone in Babylon,N,N,N,no IZ production/completion in window
+remnant-khaki-oracle-28,gemini-3.1-pro-preview,ground_control,150,Build Workshop in Babylon,Y,Y,Y,set_city_production(Workshop @ Babylon) T+2
+remnant-khaki-oracle-28,gemini-3.1-pro-preview,ground_control,150,Maintain defensive wall at Mashkan-shapir,N,N,N,castles built but not clearly at Mashkan-shapir
+volcanic-vermil-ember-37,gemini-3.1-pro-preview,ground_control,50,"Grab goody hut at (45,3)",N,N,N,no evidence of hut collection
+volcanic-vermil-ember-37,gemini-3.1-pro-preview,ground_control,50,"Send unit to protect city spot (36,11)",Y,Y,Y,"attacks at (37-38,11) T+3..5, unit active at spot"
+volcanic-vermil-ember-37,gemini-3.1-pro-preview,ground_control,50,"Settler settles (36,11)",N,P,P,"founded 46,18 then 40,11 near but not exact"
+volcanic-vermil-ember-37,gemini-3.1-pro-preview,ground_control,50,Builder improves tiles near Borsippa,Y,Y,Y,improve Farm actions T+1
+volcanic-vermil-ember-37,gemini-3.1-pro-preview,ground_control,50,Archer scouts mountains for barbs,N,N,N,no verifiable scouting
+volcanic-vermil-ember-37,gemini-3.1-pro-preview,ground_control,50,Research Bronze Working,N,N,N,researched Engineering/Machinery instead
+volcanic-vermil-ember-37,gemini-3.1-pro-preview,ground_control,150,Finish builder tasks (mines/farms/repairs),Y,Y,Y,many improve Mine/Farm/LumberMill T+1..5
+volcanic-vermil-ember-37,gemini-3.1-pro-preview,ground_control,150,Patronize Leonardo da Vinci,Y,Y,Y,patronize_great_person Leonardo T+5
+volcanic-vermil-ember-37,gemini-3.1-pro-preview,ground_control,150,Push Research Labs and Spaceports,P,P,Y,Research Labs immediate; Spaceport at T+18
+volcanic-vermil-ember-37,gemini-3.1-pro-preview,ground_control,150,Trade route from Karkar for food,N,P,P,trade routes started T+9+ but origin unclear
+volcanic-vermil-ember-37,gemini-3.1-pro-preview,ground_control,250,Keep doing Campus projects,Y,Y,Y,multiple Enhance District Campus T+1
+volcanic-vermil-ember-37,gemini-3.1-pro-preview,ground_control,250,Launch Exoplanet Expedition,Y,Y,Y,Launch Exoplanet Expedition project set T+5

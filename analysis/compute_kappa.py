@@ -18,6 +18,7 @@ import pandas as pd
 import numpy as np
 
 SHEET_PATH = ROOT / "analysis" / "kappa_labeling_sheet.csv"
+BATCH2_PATH = ROOT / "analysis" / "kappa_labeling_sheet_batch2.csv"
 
 
 def cohens_kappa(y1, y2, labels=None):
@@ -52,12 +53,29 @@ def cohens_kappa(y1, y2, labels=None):
 
 
 def main():
-    if not SHEET_PATH.exists():
-        print(f"Error: {SHEET_PATH} not found.")
-        print(f"Run: .venv/bin/python analysis/generate_kappa_sheet.py first.")
-        return
+    pool = "--pool" in sys.argv
+    batch2_only = "--batch2" in sys.argv
 
-    df = pd.read_csv(SHEET_PATH, index_col="id")
+    if batch2_only:
+        paths = [BATCH2_PATH]
+    elif pool:
+        paths = [SHEET_PATH, BATCH2_PATH]
+    else:
+        paths = [SHEET_PATH]
+
+    frames = []
+    for p in paths:
+        if not p.exists():
+            print(f"Error: {p} not found.")
+            if p == SHEET_PATH:
+                print("Run: .venv/bin/python analysis/generate_kappa_sheet.py first.")
+            else:
+                print("Run: .venv/bin/python analysis/generate_kappa_sheet_batch2.py first.")
+            return
+        frames.append(pd.read_csv(p, index_col="id"))
+
+    df = pd.concat(frames, ignore_index=True)
+    print(f"Scoring {' + '.join(p.name for p in paths)} ({len(df)} rows)\n")
 
     # Check human labels are filled
     empty = df["human_label"].isna() | (df["human_label"].str.strip() == "")

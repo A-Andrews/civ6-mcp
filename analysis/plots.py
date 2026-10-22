@@ -157,6 +157,11 @@ def _model_marker(model: str) -> str:
     return "D" if model == "Kimi-K2.5" else "o"
 
 
+def _model_linestyle(model: str) -> str:
+    """Dotted line for Kimi (n=1 exploratory); solid for all others."""
+    return ":" if model == "Kimi-K2.5" else "-"
+
+
 def _apply_kimi_hatch(ax: plt.Axes) -> None:
     """Post-process seaborn/category-coloured axes: hatch patches coloured KIMI_GREY."""
     import matplotlib.colors as mcolors
@@ -166,6 +171,37 @@ def _apply_kimi_hatch(ax: plt.Axes) -> None:
         if np.allclose(fc, kimi_rgba[:3], atol=1e-2):
             patch.set_hatch(KIMI_HATCH)
             patch.set_edgecolor(MARBLE[600])
+            patch.set_linewidth(1.0)
+
+
+def _style_kimi_patches(patches, model: str) -> None:
+    """Apply hatch styling to a model's filled patches when it is Kimi."""
+    if model != "Kimi-K2.5":
+        return
+    for patch in patches:
+        patch.set_hatch(KIMI_HATCH)
+        patch.set_edgecolor(MARBLE[600])
+        patch.set_linewidth(1.0)
+
+
+def _mark_kimi_panel(ax: plt.Axes) -> None:
+    """Mark a full subplot as exploratory when it shows only the Kimi run."""
+    from matplotlib.patches import Rectangle
+
+    overlay = Rectangle(
+        (0, 0), 1, 1,
+        transform=ax.transAxes,
+        facecolor="none",
+        edgecolor=MARBLE[400],
+        hatch=KIMI_HATCH,
+        linewidth=0.0,
+        zorder=3.5,
+    )
+    ax.add_patch(overlay)
+    for spine in ax.spines.values():
+        spine.set_linestyle(":")
+        spine.set_linewidth(1.1)
+        spine.set_color(MARBLE[500])
 
 
 _INFLECTION_COLORS = {
@@ -242,7 +278,7 @@ def _add_icon_legend(ax: plt.Axes, handles, labels: list[str], models: list[str]
     for handle, label, model in zip(handles, labels, models):
         img = _load_icon(model, size=18)
         if img is not None:
-            handler_map[handle] = _IconHandler(img, PALETTE.get(model, MARBLE[500]))
+            handler_map[handle] = _IconHandler(img, _model_color(model))
 
     return ax.legend(handles=handles, labels=labels, handler_map=handler_map, **legend_kw)
 
@@ -288,7 +324,7 @@ def plot_outcome_heatmap(games_df: pd.DataFrame) -> plt.Figure:
     # Add descriptive-only note
     fig.text(0.5, -0.04,
              "Descriptive only — not statistically powered for model comparison "
-             "(Fisher's exact test p=0.488)",
+             "(Fisher's exact test p=0.530)",
              ha="center", fontsize=10, color=MARBLE[600], style="italic")
     plt.tight_layout()
     _save(fig, "outcome_heatmap")
@@ -385,11 +421,25 @@ def plot_normalised_score(games_df: pd.DataFrame) -> plt.Figure:
     games_df["model_label_n"] = games_df["model"].map(_label_n)
 
     # Individual dots — all runs
-    sns.stripplot(data=games_df, x="model_label_n", y="normalised_score",
+    non_kimi = games_df[games_df["model"] != "Kimi-K2.5"]
+    sns.stripplot(data=non_kimi, x="model_label_n", y="normalised_score",
                   order=label_n_order,
                   hue="model_label_n", palette=label_n_palette,
                   ax=ax, size=8, jitter=True, alpha=0.80,
                   linewidth=0.6, edgecolor=MARBLE[600], legend=False)
+    kimi = games_df[games_df["model"] == "Kimi-K2.5"]
+    if not kimi.empty:
+        kimi_x = label_n_order.index(_label_n("Kimi-K2.5"))
+        ax.scatter(
+            np.full(len(kimi), kimi_x),
+            kimi["normalised_score"],
+            s=90,
+            marker=_model_marker("Kimi-K2.5"),
+            color=_model_color("Kimi-K2.5"),
+            edgecolor=MARBLE[600],
+            linewidth=1.0,
+            zorder=4,
+        )
 
     # Overlay median as a horizontal tick per model
     for i, m in enumerate(order):
@@ -519,7 +569,7 @@ def plot_score_trajectories(
         if "AI_" in model:
             continue
         color = _model_color(model)
-        ls = ":" if model == "Kimi-K2.5" else "-"
+        ls = _model_linestyle(model)
         mdata = sub[sub["model"] == model]
         for _, gdf in mdata.groupby("game_id"):
             ax.plot(gdf["turn"], gdf[metric], color=color, alpha=0.12, lw=0.7)
@@ -581,7 +631,7 @@ def plot_yield_trajectories(
             std_s  = mdata.groupby("turn")[metric].std().fillna(0)
             n_s    = mdata.groupby("turn")[metric].count().clip(lower=1)
             ci_s   = 1.96 * std_s / np.sqrt(n_s)
-            ls = ":" if model == "Kimi-K2.5" else "-"
+            ls = _model_linestyle(model)
             ax.plot(mean_s.index, mean_s, color=color, lw=2.5,
                     ls=ls, label=_label_n(model))
             ax.fill_between(mean_s.index,
@@ -631,7 +681,7 @@ def plot_expansion_timing(
     for model in sorted(pivot["model"].unique()):
         mdata = pivot[pivot["model"] == model]
         color = _model_color(model)
-        ls = ":" if model == "Kimi-K2.5" else "-"
+        ls = _model_linestyle(model)
         ci = 1.96 * mdata["std"].fillna(0) / np.sqrt(mdata["count"].clip(lower=1))
         ax.plot(mdata["city_number"], mdata["mean"], marker=_model_marker(model),
                 color=color, lw=2, ls=ls, label=_label_n(model))
@@ -740,20 +790,28 @@ def plot_radar(
 
     models_plotted: list[str] = []
     for model in summary_df.index:
-        color = PALETTE.get(model, MARBLE[500])
+        color = _model_color(model)
+        ls = _model_linestyle(model)
         vals = summary_df.loc[model].tolist()
         vals += vals[:1]
-        ax.plot(angles, vals, color=color, lw=2.2, label=_label(model))
-        ax.fill(angles, vals, color=color, alpha=0.09)
+        ax.plot(
+            angles, vals, color=color, lw=2.2, ls=ls,
+            marker=_model_marker(model), markersize=5,
+            label=_label_n(model),
+        )
+        fills = ax.fill(angles, vals, color=color, alpha=0.09)
+        _style_kimi_patches(fills, model)
         # 95% CI band
         if se_df is not None and model in se_df.index:
             ses = se_df.loc[model].tolist()
             ses += ses[:1]
             lo = [max(v - s, -2.5) for v, s in zip(vals, ses)]
             hi = [min(v + s,  2.5) for v, s in zip(vals, ses)]
-            ax.fill(angles, hi, color=color, alpha=0.12)
+            hi_fill = ax.fill(angles, hi, color=color, alpha=0.12)
+            _style_kimi_patches(hi_fill, model)
             ax.fill(angles, lo, color="white", alpha=1.0)
-            ax.fill(angles, lo, color=color, alpha=0.09)
+            lo_fill = ax.fill(angles, lo, color=color, alpha=0.09)
+            _style_kimi_patches(lo_fill, model)
         models_plotted.append(model)
 
     ax.set_xticks(angles[:-1])
@@ -816,13 +874,13 @@ def plot_pmr_subcategories(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> pl
                 palette=label_palette,
                 errorbar=("ci", 95), capsize=0.08, err_kws={"linewidth": 1.3},
                 ax=ax_a)
+    _apply_kimi_hatch(ax_a)
     # Add value labels on bars
     for patch in ax_a.patches:
         h = patch.get_height()
         if h > 0:
             ax_a.text(patch.get_x() + patch.get_width() / 2, h + 0.0005,
                       f"{h:.2%}", ha="center", va="bottom", fontsize=10, color=MARBLE[700])
-    ax_a.set_title("(A) Aggregate PMR per model", fontsize=13, color=MARBLE[800])
     ax_a.set_xlabel("")
     ax_a.set_ylabel("PMR (% of non-infrastructure calls)", fontsize=11)
     ax_a.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
@@ -838,12 +896,12 @@ def plot_pmr_subcategories(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> pl
                 palette=label_palette,
                 errorbar=("ci", 95), capsize=0.05, err_kws={"linewidth": 1.2},
                 ax=ax_b)
+    _apply_kimi_hatch(ax_b)
     # Highlight victory monitoring with an annotation box
     ax_b.annotate("lowest PMR\nsubcategory", xy=(0, 0.001),
                   xytext=(0.22, 0.012),
                   fontsize=9, color=STATUS_DEFEAT,
                   arrowprops=dict(arrowstyle="->", color=STATUS_DEFEAT, lw=1.0))
-    ax_b.set_title("(B) PMR by subcategory", fontsize=13, color=MARBLE[800])
     ax_b.set_xlabel("")
     ax_b.set_ylabel("PMR (% of non-infrastructure calls)", fontsize=11)
     ax_b.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
@@ -852,8 +910,6 @@ def plot_pmr_subcategories(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> pl
     ax_b.get_legend().remove()
     _add_icon_legend(ax_b, handles, leg_labels_b, models_ordered, fontsize=10, loc="upper right")
 
-    plt.suptitle("Proactive Monitoring Rate",
-                 fontsize=15, fontweight="bold", color=MARBLE[800])
     plt.tight_layout()
     _save(fig, "pmr_subcategories")
     return fig
@@ -878,7 +934,7 @@ def plot_pmr_over_time(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> plt.Fi
             .apply(lambda df: (df["pmr_subcategory"].notna()).sum() / max(df["is_pmr_denominator"].sum(), 1))
             .rolling(10, min_periods=1).mean()
         )
-        ls = ":" if model == "Kimi-K2.5" else "-"
+        ls = _model_linestyle(model)
         ax.plot(turn_pmr.index, turn_pmr, color=color, lw=2.2, ls=ls, label=_label_n(model))
         all_pmr_vals.extend(turn_pmr.dropna().tolist())
         models_plotted.append(model)
@@ -967,17 +1023,18 @@ def plot_tool_category_stacked_area(
         is_kimi = model == "Kimi-K2.5"
         title_color = MARBLE[500] if is_kimi else MARBLE[800]
         suffix = " — exploratory" if is_kimi else ""
-        ax.set_title(f"{_label(model)} (n={n}){suffix}", fontsize=13, color=title_color)
-        ax.set_xlabel("Turn", fontsize=12)
+        ax.set_title(f"{_label(model)} (n={n}){suffix}", fontsize=18, color=title_color)
+        if is_kimi:
+            _mark_kimi_panel(ax)
+        ax.set_xlabel("Turn", fontsize=16)
+        ax.tick_params(axis="both", labelsize=14)
         if model == model_list[0]:
-            ax.set_ylabel("% of calls (10-turn rolling avg)", fontsize=12)
+            ax.set_ylabel("% of calls (10-turn rolling avg)", fontsize=16)
 
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", ncol=5,
-               bbox_to_anchor=(0.5, -0.08), fontsize=11,
+               bbox_to_anchor=(0.5, -0.08), fontsize=15,
                facecolor="white", edgecolor=MARBLE[300])
-    plt.suptitle("Tool Category Composition Over Time",
-                 fontsize=16, fontweight="bold", color=MARBLE[800])
     plt.tight_layout()
     _save(fig, "tool_stacked_area")
     return fig
@@ -999,7 +1056,6 @@ def plot_rag_breakdown(rag_results: pd.DataFrame | None = None) -> plt.Figure:
     if rag_results.empty:
         fig, ax = plt.subplots()
         ax.text(0.5, 0.5, "No RAG data yet", ha="center", va="center")
-        ax.set_title("RAG Breakdown")
         _save(fig, "rag_breakdown")
         return fig
 
@@ -1040,6 +1096,13 @@ def plot_rag_breakdown(rag_results: pd.DataFrame | None = None) -> plt.Figure:
     ax.bar(x, n_vals,
            bottom=[y + p for y, p in zip(y_vals, p_vals)],
            color=STATUS_DEFEAT, label="Not done (N)")
+    if "Kimi-K2.5" in models:
+        kimi_idx = models.index("Kimi-K2.5")
+        for patch in ax.patches:
+            if abs((patch.get_x() + patch.get_width() / 2) - x[kimi_idx]) < 0.2:
+                patch.set_hatch(KIMI_HATCH)
+                patch.set_edgecolor(MARBLE[600])
+                patch.set_linewidth(1.0)
 
     rag_scores = []
     for i, (y, p, total, ci) in enumerate(zip(y_vals, p_vals, totals, rag_cis)):
@@ -1050,11 +1113,7 @@ def plot_rag_breakdown(rag_results: pd.DataFrame | None = None) -> plt.Figure:
 
     ax.set_ylabel("Proportion of commitments", fontsize=12)
     ax.set_ylim(0, 1.10)
-    ax.set_title("Commitment Execution within 10 Turns (RAG@10)\n"
-                 "RAG@10 = (Y + 0.5×P) / total commitments; higher is better",
-                 fontsize=13, fontweight="bold", color=MARBLE[800])
-    ax.legend(loc="lower right", fontsize=11, facecolor="white", edgecolor=MARBLE[300],
-              title="Executed (Y), Partial (P), Not done (N)")
+    ax.legend(loc="lower right", fontsize=11, facecolor="white", edgecolor=MARBLE[300])
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
     plt.setp(ax.get_xticklabels(), visible=False)
 
@@ -1147,6 +1206,7 @@ def plot_rag_sensitivity(rag_df: pd.DataFrame | None = None) -> plt.Figure:
     for model in sorted(rag_df["model"].unique()):
         mdata = rag_df[rag_df["model"] == model].sort_values("K")
         color = _model_color(model)
+        ls = _model_linestyle(model)
         # Bootstrap 95% CI per K point if n available
         ci_lo, ci_hi = [], []
         for _, row in mdata.iterrows():
@@ -1159,9 +1219,13 @@ def plot_rag_sensitivity(rag_df: pd.DataFrame | None = None) -> plt.Figure:
             else:
                 ci_lo.append(row["rag_score"])
                 ci_hi.append(row["rag_score"])
-        ax.fill_between(mdata["K"], ci_lo, ci_hi, color=color, alpha=0.15)
-        ax.plot(mdata["K"], mdata["rag_score"], marker="o", color=color,
-                lw=2.5, markersize=10, label=_label_n(model))
+        fill = ax.fill_between(mdata["K"], ci_lo, ci_hi, color=color, alpha=0.15)
+        if model == "Kimi-K2.5":
+            fill.set_hatch(KIMI_HATCH)
+            fill.set_edgecolor(MARBLE[600])
+            fill.set_linewidth(1.0)
+        ax.plot(mdata["K"], mdata["rag_score"], marker=_model_marker(model), color=color,
+                lw=2.5, ls=ls, markersize=10, label=_label_n(model))
         # Annotate last point
         last = mdata.iloc[-1]
         ax.annotate(f"{last['rag_score']:.1%}",
@@ -1485,9 +1549,10 @@ def plot_tool_error_rate(tools_df: pd.DataFrame, top_n: int = 15) -> plt.Figure:
             1.96 * np.sqrt(max(p * (1 - p) / max(n, 1), 0))
             for p, n in zip(rates, counts)
         ]
-        ax.barh(y + offset, rates, bar_h, color=color, alpha=0.85, label=_label_n(model),
-                xerr=ci_vals, capsize=3,
-                error_kw=dict(elinewidth=1.1, ecolor=MARBLE[700]))
+        bars = ax.barh(y + offset, rates, bar_h, color=color, alpha=0.85, label=_label_n(model),
+                       xerr=ci_vals, capsize=3,
+                       error_kw=dict(elinewidth=1.1, ecolor=MARBLE[700]))
+        _style_kimi_patches(bars.patches, model)
 
     ax.set_yticks(y)
     ax.set_yticklabels(tool_order, fontsize=11)
@@ -1592,15 +1657,15 @@ def plot_tool_entropy(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> plt.Fig
     fig, ax = plt.subplots(figsize=(9, 3.8))
     for model in sorted(merged["model"].unique()):
         sub = merged[merged["model"] == model]
-        color = PALETTE.get(model, MARBLE[500])
+        color = _model_color(model)
         markers = {"ground_control": "o", "snowflake": "^", "cry_havoc": "s"}
         for scenario, scen_sub in sub.groupby("scenario"):
             ax.scatter(
                 scen_sub["entropy"], scen_sub["normalised_score"],
                 color=color, s=110, alpha=0.85,
                 edgecolor=MARBLE[800], linewidth=1.1,
-                marker=markers.get(scenario, "o"),
-                label=_label(model) if scenario == "ground_control" else None,
+                marker=_model_marker(model) if scenario == "ground_control" else markers.get(scenario, "o"),
+                label=_label_n(model) if scenario == "ground_control" else None,
             )
 
     # Per-model regression line + 95% CI band
@@ -1610,7 +1675,8 @@ def plot_tool_entropy(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> plt.Fig
         sub = merged[merged["model"] == model].dropna(subset=["entropy", "normalised_score"])
         if len(sub) < 3:
             continue
-        color = PALETTE.get(model, MARBLE[500])
+        color = _model_color(model)
+        ls = _model_linestyle(model)
         x_fit = np.linspace(sub["entropy"].min(), sub["entropy"].max(), 80)
         slope, intercept, _, _, se = _stats.linregress(sub["entropy"], sub["normalised_score"])
         y_fit = slope * x_fit + intercept
@@ -1618,8 +1684,12 @@ def plot_tool_entropy(tools_df: pd.DataFrame, games_df: pd.DataFrame) -> plt.Fig
         x_mean = sub["entropy"].mean()
         sxx = ((sub["entropy"] - x_mean) ** 2).sum()
         ci = 1.96 * se * np.sqrt(1 / n + (x_fit - x_mean) ** 2 / sxx)
-        ax.plot(x_fit, y_fit, color=color, lw=1.4, alpha=0.7, linestyle="--")
-        ax.fill_between(x_fit, y_fit - ci, y_fit + ci, color=color, alpha=0.10)
+        ax.plot(x_fit, y_fit, color=color, lw=1.4, alpha=0.7, linestyle=ls)
+        fill = ax.fill_between(x_fit, y_fit - ci, y_fit + ci, color=color, alpha=0.10)
+        if model == "Kimi-K2.5":
+            fill.set_hatch(KIMI_HATCH)
+            fill.set_edgecolor(MARBLE[600])
+            fill.set_linewidth(1.0)
 
     # Spearman correlation across all points
     rho, p_val = spearmanr(merged["entropy"], merged["normalised_score"])
@@ -1782,11 +1852,16 @@ def plot_decision_follow_through(
     left = np.zeros(len(models))
     for col in col_order:
         vals = dist_pct.loc[models, col].values
-        ax.barh(
+        bars = ax.barh(
             y_pos, vals, left=left,
             color=cat_colors[col], edgecolor="white", linewidth=0.8,
             label=cat_labels[col],
         )
+        for yi, patch in enumerate(bars.patches):
+            if models[yi] == "Kimi-K2.5":
+                patch.set_hatch(KIMI_HATCH)
+                patch.set_edgecolor(MARBLE[600])
+                patch.set_linewidth(1.0)
         # Annotate segments >= 8%
         for yi, (v, lft) in enumerate(zip(vals, left)):
             if v >= 0.08:
@@ -1855,9 +1930,14 @@ def plot_game_sparklines(
                          fontsize=11, color=MARBLE[700])
             continue
 
-        color = PALETTE.get(game["model"], MARBLE[500])
-        ax.plot(gdf["turn"], gdf["score"], color=color, lw=1.8, label="score")
-        ax.fill_between(gdf["turn"], 0, gdf["score"], color=color, alpha=0.12)
+        color = _model_color(game["model"])
+        ls = _model_linestyle(game["model"])
+        ax.plot(gdf["turn"], gdf["score"], color=color, lw=1.8, ls=ls, label="score")
+        fill = ax.fill_between(gdf["turn"], 0, gdf["score"], color=color, alpha=0.12)
+        if game["model"] == "Kimi-K2.5":
+            fill.set_hatch(KIMI_HATCH)
+            fill.set_edgecolor(MARBLE[600])
+            fill.set_linewidth(0.8)
         ax.set_ylabel("score", color=color, fontsize=10)
         ax.tick_params(axis="y", labelcolor=color, labelsize=8)
 
@@ -1937,11 +2017,12 @@ def plot_reflection_quality(
         models_plotted = []
         for model in sorted(panel["model"].unique()):
             sub = panel[panel["model"] == model].dropna(subset=[x_col, "normalised_score"])
-            color = PALETTE.get(model, MARBLE[500])
+            color = _model_color(model)
             ax.scatter(sub[x_col], sub["normalised_score"],
                        color=color, s=110, alpha=0.85,
                        edgecolor=MARBLE[800], linewidth=1.1,
-                       label=_label(model))
+                       marker=_model_marker(model),
+                       label=_label_n(model))
             if len(sub) >= 3 and sub[x_col].nunique() > 1:
                 slope, intercept, _, _, se = _stats.linregress(sub[x_col], sub["normalised_score"])
                 x_fit = np.linspace(sub[x_col].min(), sub[x_col].max(), 80)
@@ -1950,8 +2031,13 @@ def plot_reflection_quality(
                 x_mean = sub[x_col].mean()
                 sxx = ((sub[x_col] - x_mean) ** 2).sum()
                 ci = 1.96 * se * np.sqrt(1 / n + (x_fit - x_mean) ** 2 / sxx)
-                ax.plot(x_fit, y_fit, color=color, lw=1.4, alpha=0.7, linestyle="--")
-                ax.fill_between(x_fit, y_fit - ci, y_fit + ci, color=color, alpha=0.10)
+                ax.plot(x_fit, y_fit, color=color, lw=1.4, alpha=0.7,
+                        linestyle=_model_linestyle(model))
+                fill = ax.fill_between(x_fit, y_fit - ci, y_fit + ci, color=color, alpha=0.10)
+                if model == "Kimi-K2.5":
+                    fill.set_hatch(KIMI_HATCH)
+                    fill.set_edgecolor(MARBLE[600])
+                    fill.set_linewidth(1.0)
             models_plotted.append(model)
         if len(panel) >= 3 and panel[x_col].nunique() > 1:
             rho, p_val = spearmanr(panel[x_col], panel["normalised_score"])
